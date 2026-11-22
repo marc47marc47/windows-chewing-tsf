@@ -44,7 +44,7 @@ jobs:
       signed-artifact-id: ${{ steps.upload-signed.outputs.artifact-id }}
     steps:
       - name: Sign Artifact
-        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2.2
+        uses: signpath/github-action-submit-signing-request@4a84eb4ad763290f059275786f2deed97c2c672b # v3.1
         with:
           api-token: "${{ secrets.api-token }}"
           organization-id: "e8feb3e7-02b0-4e78-aa0a-f3431f374964"
