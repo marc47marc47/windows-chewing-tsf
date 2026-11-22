@@ -1,0 +1,142 @@
+I03：學習保存與短期權重，靜態規格（尚待原生驗證）
+
+來源：IMTCCORE.DLL；位址適用本工作區核對過的版本。
+沒有讀取或改寫使用者的個人學習檔，沒有載入執行系統 DLL。
+
+短期權重
+  ShortTermWeight 1800793f8：205 個 float32 槽，初始表 18011e070..18011e3a4。
+  桶 k 的值為 float32(1.0 / double(sqrtf(float32(k+1))) + 1.0)。
+  先將 int distance 除以 10（C 向零截斷），結果 0..204 查表，其他回傳 0。
+  GetWeight 1800783f4 使用有效位置的 (head-position+2048)%2048，故可達 distance 0..2047。
+  初始 occurrence 加上沿鏈結找到、CompareNode 匹配長度足夠的各 occurrence 權重；
+  最後 logf(float32(float32(min(length,4)*length) * sum_float32))。
+  length<=0、位置不合法或鎖定失敗時回傳 0，而不是取 log(0)。
+  不可將本權重當成 unigram 原始頻率或直接放入 chewing 的歷史 log 機率。
+  全部可達距離匯出：shortterm-weights.csv；位元、公式及限制：shortterm-weight-spec.json。
+  平台 sqrt/log 的末位元相容仍未與微軟 CRT 執行結果核對。
+
+持久化
+  SaveToDiskFile 1800684b4；ReadFromDiskFile 180067e3c。
+  簽章 USERLERN（8 bytes）；+8 uint32=0、+0xc uint32=1；記錄區始於 0x80。
+  +0x10 unigram 起點，+0x14 bigram 起點，+0x18 word 映射目錄起點；
+  +0x1c reading table 起點，+0x20 檔案資料終點；+0x24 unigram 個數、
+  +0x28 bigram 個數、+0x2c 保存 generation。其餘 header bytes 尚未完整定義。
+  Unigram 每筆 16 bytes：float32 factor、uint32 word ID、uint32 EPX、uint32 active。
+  Bigram 每筆 12 bytes：float32 factor、uint32 previous word ID、uint32 next word ID。
+  上述兩種磁碟記錄與對應記憶體節點相同布局；載入後另建立 hash index。
+
+  保存時 unigram：this+0x70==0 則直接保存原 factor；否則先 float32 除以 0.6f，
+  僅保存結果在 [0.01f,1.0f] 的紀錄。該分支不是依每筆 active 旗標選擇除法。
+  保存時 bigram：一律 float32 除以 0.4f，只保存 [0.01f,1.0f]。
+  保存程式將調整後值寫到輸出緩衝區，不能由此斷言已同時更新記憶體 factor。
+  指令證據：18006869f DIVSS（unigram）、18006874e DIVSS（bigram）；
+  門檻與倍率原始常數見 shortterm-weight-spec.json persistence_constants。
+  this+0x70 建構預設為 1；ImportLearningFile 180066eb8 成功完成後設為 0，
+  因而至少文字匯入會使後續 unigram 保存不除以 0.6；其他修改點仍待完整盤點。
+
+  保存中 BufferTheWordID 收集參照的 word IDs；每個映射目錄項 12 bytes：
+  word ID、字元長度、相對目錄起點的資料 offset。後接 EPX uint32 串、
+  Unicode UTF-16 串並按 4 bytes 對齊，尾端另呼叫 SaveReadingTable。
+  詞 ID 升級、讀音表及損壞輸入處理尚未形成完整解析器，不宣稱已可遷移個人資料。
+  SaveToDiskFile 受 this+0x74（Init 成功旗標）與共享 dirty bit 等條件控制。
+  已辨識直接呼叫者：CDic::SaveUserData 18005c544，以及析構函式 180063fec；
+  前者在 broker 分支使用 PersistUserDictionary，否則對已初始化的學習物件直接保存。
+  上層提交、關閉、定時或其他觸發點仍待繼續追蹤，不能推論每次選字立即落盤。
+
+文字匯入
+  ImportLearningFile 要求 UTF-16LE BOM；以 CR 分行，遇 CRLF 會跳過 LF，最後另處理尾行。
+  ProcessLearningData 以空格拆 token，接受 3 tokens（reading、Unicode、factor）或
+  5 tokens（兩組 reading/Unicode、factor），%f 結果傳入 RegisterUnigram/Bigram。
+  Register* 由讀音及文字取得 char IDs，再以 CharIDStrToWordID(...,0x21) 尋找詞 ID；
+  找不到詞 ID 會失敗，找到則呼叫 Adjust*Factor，並不是直接指定現有 factor。
+  完整字串截斷、無效數字、部分行失敗時的狀態與回傳語義尚待建立執行對照。
+
+反編譯限制
+  ProcessLearningData 1800678f8 原偽碼把 swscanf_s("%f") 輸出遺漏，後續倍率顯示 0.0。
+  已在 180067b0c 補入該呼叫點的三參數簽章；輸出 local_e8[0] 由後續 Register* 使用。
+  修正產物 call-overrides/CStatisLearn_ProcessLearningData.c，Ghidra 保存成功。
+  這是特定 %f 呼叫點的簽章，並非將所有可變參數 swscanf_s 改成固定三參數。
+  本規格的保存欄位與除法已核對指令；其他未修正偽碼不得直接作為移植規格。
+
+學習更新語義（2026-11-22 補，靜態；尚未原生執行驗證）
+
+分數方向
+  語言模型 codebook 值皆為對數分數：unigram -19.07..-2.72、bigram -14.71..0、trigram -10.97..0。
+  factor 以乘法套用於這類負分數，所以 factor<1 使分數較不負（更偏好），factor>1 較不偏好。
+  持久保存篩選 [0.01,1.0] 與此一致：只保存「提升」型紀錄，不保存降權紀錄。
+
+資料結構
+  Unigram 節點 16 bytes：+0 factor(float)、+4 word ID、+8 EPX（讀音）、+0xc active 旗標。
+  Bigram 節點 12 bytes：+0 factor、+4 前詞 ID、+8 後詞 ID。
+  持久表 CHashIndex<*,103,1000>：103 個雜湊桶、容量 1000 節點，滿載時淘汰最舊節點
+  （PileOutQueNode／AllocQueNode 1800649 70）。unigram 表 this+0x98、bigram 表 this+0xe0；
+  暫存表（this[0x78]&1 時讀）unigram this+0x970、bigram this+0x9b8；
+  active-learn 表 unigram this+0xa00、bigram this+0xa48，同為 1000 節點。
+  沒有依時間遞減；「衰減」只有 (a) 容量淘汰、(b) 下列 0.6 規則、(c) 短期權重距離函數。
+
+AdjustUnigramFactor(f, wordID, charID) 180064798
+  charID≠0 時取其 EPX；charID==0 則 EPX=0xffffffff 且不走下列 0.6 分支。
+  節點不存在視為 factor=1.0。
+  先呼叫 InactiveUnigramFactor(EPX)：掃描全部 unigram 節點，凡 EPX 相同者
+  active 旗標清 0，且若 factor<0.6f 則 factor/=0.6f；有任一命中回傳 1。
+  接著：factor_new = f * factor_old；若上一步回傳 1 且 EPX 有效，再乘 0.6f
+  （常數 0x3f19999a）。被選節點 active=1，寫回 hash，設 dirty bit。
+  其他同讀音詞的 factor 不會被乘上 f，僅被「重啟用」。
+
+AdjustBigramFactor(f, prevID, nextID) 180064660
+  factor_new = f * factor_old（缺值為 1.0）；寫回、設 dirty。詞 ID 須通過 fValidWordID（0 允許）。
+
+呼叫來源
+  RegisterUnigram／RegisterBigram（文字匯入）：呼叫 Adjust* 時 charID=0，單純乘法，無 0.6 規則。
+  CImeBrokerClient::ProcessCommands 18002d350 命令 7／8：由用戶端列舉器取得 (factor, wordID, charID)
+  後直接呼叫 AdjustUnigramFactor／AdjustBigramFactor；factor 值由呼叫端決定，本 DLL 內未見常數。
+  CStncLearn::LearnFromContext 180063bd8（呼叫者含 CCandConvNextWord::OnFinalize 180046110、
+  CCandConvPrompt::OnFinalize 180053470、ProcessCommands）：在非 broker 模式
+  呼叫 CDicShortTerm::AppendContext（短期權重鏈）；broker 模式送 LearnContextEx 命令。
+  一般選字確認所經的 OnFinalize 是否同樣呼叫，尚未追蹤。
+
+ActiveLearnFromContext(1800640a8；由 ActiveLearningProc 180043780 呼叫)
+  讀 this+0x168 起最多 0x400 個 UTF-16 字元（處理代理對）的文件上下文；對每個字元取其所有
+  詞 ID（UnicodeToAllWordIDList），active unigram：
+    new = old_node * 0.7f * GetActiveUnigramFactor；兩者缺值皆 1.0，已存在時等於 old 的平方乘 0.7。
+  相鄰字元的詞 ID 兩兩組合，active bigram 同樣公式，常數 0.7f（0x3f333333）。
+  寫入 active 表（this+0xa00／0xa48），不寫入持久表。讀取端 GetActiveUnigramFactor／
+  GetActiveBigramFactor 缺值回 1.0。是否與持久 factor 相乘後才進排序，見 ranking-mapping.txt，
+  尚未驗證。
+
+讀取端
+  GetUnigramFactor 180066dc0／GetBigramFactor 180065570：this+0x68==0 回 1.0；
+  條件為詞 ID 非特定範圍（(id&0xf00000)!=0 或 (id&0xfffff)>=範圍門檻）才查表，否則 1.0；
+  命中回節點 factor，GetUnigramFactor 另回報 active 旗標。第三參數 param_3 傳給 GetPair，
+  僅 broker 關閉時有效（可能是 LRU 觸碰旗標，未證實）。
+
+未解
+  ProcessCommands 7／8 的 factor 來源（TIP／UI 端）；一般選字提交至 Adjust*／AppendContext 的完整路徑；
+  GetPair 第 4 參數語義；active 與持久 factor 在排序中的合成；原生執行對照；
+  0x3f19999a=0.6f、0x3f333333=0.7f 由 IEEE754 位元換算，指令位址已由符號名核對。
+
+一般選字提交的學習路徑（2026-11-22 補，靜態）
+  CImeSentenceWrap::LearnContext 18009afe0(起點,長度,旗標)：必要時 RefreshStatisticalLearningUsage，
+  以 CLmBestPathString 取得目前最佳路徑的 char ID 陣列，取 [起點,起點+長度) 區段，
+  經 (this+0x10)+0x58 物件的虛擬方法 +0x18 轉入 CImeUserDataMgr::LearnContext 1800a2600，
+  再呼叫 CStncLearn::LearnFromContext 180063d74／180063bd8。
+  非 broker：CDicShortTerm::AppendContext 1800777dc；broker：送 LearnContextEx 命令（同結果由服務端處理）。
+  AppendContext 逐字處理：CharIDToEPX 無效、EUDC、Pool、EUDR 字元改記 0xffffffff 並設旗標位 1；
+  寫入 2048 槽環形佇列（索引 &0x7ff；滿時 FreePartQueue 釋放一段），每槽 8 bytes（char ID + 旗標）；
+  非高頻字（IsHighFreqCharID）才以 AddSfxDex 建立後綴索引，連結同一字元的 occurrence 鏈；
+  最後設 dirty 旗標。
+  結論：一般選字不經 AdjustUnigramFactor／AdjustBigramFactor，而是進入短期上下文環；
+  環大小 2048 與 GetWeight 可達距離 0..2047 相符，權重如「短期權重」章節。
+  Adjust* 路徑僅見於 ProcessCommands 命令 7／8 與文字匯入。
+  未解：RefreshStatisticalLearningUsage 的作用；AppendContext 之外是否另有選字專用計數；
+  短期權重如何與 unigram/bigram 分數合成進候選排序（見 ranking-mapping.txt）。
+
+短期／長期詞權重對外介面（2026-11-22 補，靜態）
+  詞 ID 類別：(id&0xf00000)==0x500000 為短期學習詞，==0x400000 為長期學習詞。
+  CImeUserDataMgr::_GetRawWeight 1800a27bc：無 CStncLearn 時回 1.0；短期類回 CDicShortTerm::GetWeight(id,長度)；
+  長期類回 CDicLongTerm::GetWeight；其他類回 0.0。
+  GetCandidateWeight 1800a2440：out = float(0.8 - raw*0.2)（雙精度常數 0x3fe999999999999a／0x3fc999999999999a）。
+  GetInternalScore 1800a2490：有學習物件且為長期類 ID 時 3.0，否則 0.0。
+  GetLatticeWeight 1800a24d0：短期類且 raw>0 時 float(0.83 - raw*0.1)（0x3fea8f5c28f5c28f／0x3fb999999999999a），否則 1.0。
+  CUDicProxy::EnumItems 18005dde0（列舉使用者詞）：權重取 GetWeight 後以 2^63 修正轉 uint64，再除以詞長取整。
+  這三個方法的呼叫者（候選產生／格網評分）與乘於何種分數尚未追蹤；不能直接當 chewing 排序規格。

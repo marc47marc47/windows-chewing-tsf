@@ -1,0 +1,10 @@
+/build
+/dist
+/.cache
+
+target
+node_modules
+
+/bin/*.exe
+/tmp/
+/logs/*.log

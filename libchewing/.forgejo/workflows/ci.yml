@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "master"
+      - "release/*"
+  pull_request:
+    branches:
+      - "master"
+      - "release/*"
+  merge_group:
+    types: [checks_requested]
+
+env:
+  RUST_VERSION: "1.95"
+  CMAKE_GENERATOR: Ninja
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [fedora-latest]
+        preset:
+          - rust-release
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }}, preset=${{ matrix.preset }}
+
+    steps:
+      - if: ${{ matrix.os == 'fedora-latest' }}
+        run: sudo dnf install -y cmake ninja-build swift-lang git-lfs
+      - if: ${{ matrix.os == 'macos-latest' }}
+        run: brew install ninja
+      # - if: ${{ matrix.os == 'windows-latest' }}
+      #   uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756
+      - if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          choco install ninja
+
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: true
+
+      # https://codeberg.org/forgejo/forgejo/issues/7264
+      # https://github.com/git-lfs/git-lfs/issues/4031
+      # https://github.com/actions/checkout/issues/1830
+      # https://github.com/git-lfs/git-lfs/pull/6204
+      - name: Pull from LFS
+        run: |
+          git lfs install
+          git submodule foreach git lfs pull
+
+      - name: Setup rustup
+        run: |
+          rustup set auto-self-update disable
+          rustup install ${{ env.RUST_VERSION }}
+          rustup default ${{ env.RUST_VERSION }}
+
+      - name: Cargo Lock
+        run: |
+          cargo fetch --locked
+
+      - name: Build
+        run: |
+          cmake --preset ${{ matrix.preset }} -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_TARGET_TRIPLET }}
+          cmake --build build
+          cmake --install build --prefix install
+
+      - name: Test
+        run: |
+          ctest --test-dir build --output-on-failure
+
+      - if: ${{ matrix.os != 'windows-latest' }}
+        name: Swift Test
+        run: |
+          swift test -v || true
+
+  aarch64-smoke:
+    runs-on: fedora-latest
+    name: Aarch64 cross-compile smoke test
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup rustup
+        run: |
+          rustup install ${{ env.RUST_VERSION }}
+          rustup default ${{ env.RUST_VERSION }}
+          rustup target add aarch64-unknown-linux-gnu
+
+      - name: Build
+        run: |
+          cargo build --target=aarch64-unknown-linux-gnu
+          cargo build -p chewing_capi --target=aarch64-unknown-linux-gnu
+
+  coverage:
+    if: false
+    strategy:
+      matrix:
+        preset:
+          - rust-coverage
+    runs-on: fedora-latest
+    name: Coverage preset=${{ matrix.preset }}
+
+    steps:
+      - run: sudo dnf -y install clang cmake ninja-build llvm rustup bzip2 git gnupg2
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Setup rustup
+        run: |
+          rustup set auto-self-update disable
+          rustup component add llvm-tools
+
+      - name: Setup grcov
+        run: |
+          curl -LO https://github.com/mozilla/grcov/releases/download/v0.8.19/grcov-x86_64-unknown-linux-gnu.tar.bz2
+          echo 098be4d60b8016913542d58456fea6e771890096d1bf86e7f83dac650ba4b58a grcov-x86_64-unknown-linux-gnu.tar.bz2 | sha256sum -c -
+          tar xf grcov-x86_64-unknown-linux-gnu.tar.bz2
+
+      - name: Build
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -Cinstrument-coverage -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off
+        run: |
+          source "$HOME/.cargo/env"
+          cmake --preset ${{ matrix.preset }}
+          cmake --build build
+
+      - name: Test
+        env:
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: -Cinstrument-coverage -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off
+        run: |
+          source "$HOME/.cargo/env"
+          ctest --test-dir build --output-on-failure
+          ./grcov . -s . -b . --keep-only 'src/*' --keep-only 'capi/src/*' --llvm  -t markdown >> $GITHUB_STEP_SUMMARY
+
+      # - name: Upload coverage reports to Codecov
+      #   uses: codecov/codecov-action@v5
+      #   env:
+      #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # https://github.com/orgs/community/discussions/26822
+  results:
+    if: ${{ always() }}
+    runs-on: fedora-latest
+    name: Final Results
+    needs: [build]
+    steps:
+      - run: exit 1
+        # see https://stackoverflow.com/a/67532120/4907315
+        if: >-
+          ${{
+               contains(needs.*.result, 'failure')
+            || contains(needs.*.result, 'cancelled')
+          }}

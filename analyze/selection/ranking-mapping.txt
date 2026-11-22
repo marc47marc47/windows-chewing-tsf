@@ -1,0 +1,104 @@
+I03 排序與學習映射：階段紀錄，尚未完成
+
+已確認排序路徑：CStncCandList::Sort 18005a820。
+  3 長度升序：NewCompItemLenAsc 180059e10，同長度轉 LenDes。
+  4 長度降序：NewCompItemLenDes 180059e50。
+  5 提示候選：NewSortPrompt 18005a1c0，使用 NewCompItemPrompt 180059f20，並另有過濾與置前。
+  6 舊式順序：NewCompItemLegacy 180059db0。
+  9 保留列表當前順序後仍處理去重與索引回寫，不能稱完全無操作。
+  11 候選切換：NewCompItemCandSwitch 180059cf0。
+  NewSort 180059fb0 產生每筆 0x38 bytes 比較記錄。
+  PackDupItems 18005a610 以 UniCompFunc 18005a8b0 將等文字候選集中，標記重複後移除，
+  最終保留依原本已排序位置較早的候選；不能直接改為無序集合。
+
+已確認欄位（CStncCandItem 位移；欄位名未知時不自創業務意義）：
+  +0x10 字元 ID 串；+0x2c 字元 ID 數；+0x30 轉換後 UTF-16 單位數。
+  +0x20、+0x24、+0x28 為不同浮點值，來源與單位仍須完整追蹤。
+  +0x44 與範圍截取相關；+0x4c 為旗標；+0x4e 為 legacy ordinal。
+  LenDes 先比較長度，再處理 flag 0x20、flag 0x40 與 -50.0 門檻，
+  再比較 score 欄位及 Unicode。不能將以上欄位直接都命名成詞頻。
+  Legacy 的相同 ordinal 邊界可能不符合 Rust Ord 的等價契約，移植前須確認可達資料不變式。
+
+原始順位與 chewing：
+  CIMEditorDic::GetLegacyOrder -> CDicCharIDPH::GetLegacyOrder 18007cd80，
+  是讀音順位表內的局部位置；對應需保存 reading + ordinal，不等於 WordId 大小。
+  chewing 原始查詢順序位於 dictionary/composite.rs，條件排序在 editor/selection/phrase.rs。
+  Decoder::rank 則以語言模型、歷史及 user_pref 評分；目前以 Candidate::None 作左上下文。
+
+已確認學習讀取：
+  CStatisLearn::GetUnigramFactor 180066dc0 與 GetBigramFactor 180065570，缺值回傳 1.0。
+  CImeUserDataMgr::GetBigramFactor 1800a2390 可在 bigram 缺值時回退 unigram，
+  是否採用該 unigram 還受附帶旗標影響。
+  這些 factor 不可直接當作 chewing 的 hist_prob（log 機率）使用。
+  已確認部分單字候選及 CLmPathEvaluator 路徑中，factor 直接乘在模型分數上。
+  AddSupplementCharItemsWithUnigramScore 的 +0x20 為傳入的調整後分數，+0x24 為原始分數，
+  此欄位結論限於已追查的建構路徑，不推廣為所有來源的完整語義。
+  AdjustBigramFactor 以傳入倍率乘上原 factor；AdjustUnigramFactor 另涉及 0.6 的 active 轉換。
+  尚須完整追查 learning updates、decay、裁切、持久化及其他評分路徑。
+
+重要反編譯修正：
+  原始具名偽碼將 CImeDicWrap::GetBigramFactor 18009d500 顯示成固定 0.0，這是錯誤推論。
+  組合語言 18009d526 傳入結果指標，18009d53c 讀回結果至 XMM0。
+  在呼叫點 18009d537 補入已由 PDB 與指令證實的六參數簽章後，偽碼正確顯示回傳輸出 factor。
+  修正腳本：analyze/scripts/RepairKnownCalls.java。
+  新證據：analyze/selection/call-overrides/CImeDicWrap_GetBigramFactor.c。
+  原始匯出保留，不把原始 decompilation completed 視為語義正確證明。
+  同一腳本另修正 GetTrigram 內 1800c3567、1800c35aa 呼叫簽章。
+  修正後可見正確傳入查得的 pair index，並用它取得 backoff code，非固定索引 0。
+  證據：call-overrides/CCompressedTboLdr_GetTrigram.c。
+
+PDB 身分檢核：全部 9 個 GUID 相同，PE age=1、PDB info age=3、DBI age=1。
+  依 Microsoft PDB OpenValidate 實作，GUID 相符、PDB age 不小於 image age、DBI age 相等可接受。
+  來源：https://github.com/Microsoft/microsoft-pdb/blob/master/PDB/dbi/pdb.cpp
+  證據：analyze/symbols/identity-audit.json。
+
+新增靜態規格：learning-persistence.txt。
+  ShortTermWeight 的 205 級公式與全部 2048 個可達距離已匯出 shortterm-weights.csv。
+  USERLERN 保存布局與保存時倍率／篩選已核對指令；完整啟用條件、個人資料遷移尚未完成。
+  原始文字匯入偽碼遺漏 swscanf_s 浮點輸出；180067b0c 呼叫點已修正，
+  新匯出 CStatisLearn_ProcessLearningData.c 顯示將掃描結果傳入 Register*。
+
+尚未完成：模式啟用來源、全部分數單位、trigram 實際路徑、完整學習更新／衰減、動態驗證。
+目前僅整理映射證據，未將未確認規則接入 chewing 生產排序。
+
+格網節點權重（2026-11-22 補，靜態；反編譯遺漏回傳值已用組語核對，屬 I07 類型）
+  CImeDicWrap::GetLatticeWeight 18009d6ac 回傳 float(XMM0)；AddCharNode／AddLexNode／AddTermNode
+  內三個呼叫點 1800ab6a4、1800abb74、1800ac0f1 皆將 XMM0 以 XMM1 傳入格網節點介面的
+  虛擬方法 +0x40（MOVAPS XMM1,XMM0；CALL [node_vtbl+0x40]）。故每個格網節點帶一個詞權重，
+  但偽碼把此參數丟失。節點方法名稱與其如何併入路徑分數尚未核對。
+  CImeDicWrap::GetCandidateWeight 18009d550 另由 AddCharTypeCandidateItem／AddCorrectionCandidateItem／
+  AddPromptCandidateItem 使用（候選項權重，預設 0.0；與格網權重預設 1.0 不同）。
+  兩者均先 _GetImeLexicon(id) 找到持有該詞 ID 的詞庫，再呼叫其 IImeLexiconScore 的 +0x28／+0x20 方法。
+
+詞 ID 類別（CImeLexMgr::CheckWordIDType 1800a1b10；以 id&0xf00000 判斷，匹配時回傳 0）
+  型別1=0x000000（主詞庫）、型別2=0x100000、型別4=0x200000、型別3=0x300000、
+  0x400000 長期學習、0x500000 短期學習、型別8=0x600000、型別7=0x800000、型別9=0x900000、型別10=0xa00000。
+  型別100：fValidWordID；型別0x65：類別0 且 (id&0xfffff) 小於 兩個詞庫詞數之和。
+
+CImeLexMgr::GetLatticeWeight 1800a1db0 → 節點權重
+  型別4(0x2xxxxx)                                  → 0.1（0x3dcccccd）
+  型別2(0x1xxxxx)或型別9(0x9xxxxx)或型別3或型別10  → 取詞長 L（GetWordIDLength；失敗→1.0）：
+        L==2 或 L==3 → 0.8（0x3f4ccccd）；L>3 → 0.9（0x3f666666）；其餘（L<2）→ 1.0
+  其他類別（含主詞庫型別1、型別7、型別8）              → 1.0
+  CImeUserDataMgr::GetLatticeWeight：短期類且 raw>0 → 0.83-raw*0.1，否則 1.0（見 learning-persistence.txt）。
+  CImeLexMgr::GetCandidateWeight：其詞庫旗標(+0x10→+0x20)非 0 時轉呼叫另一虛擬方法，否則 1.0；
+  CImeLexMgr::GetInternalScore 恆 0.0；CImeUserDataMgr::GetInternalScore 長期類 3.0。
+  未解：型別 2/3/4/9/10 對應哪個實體詞庫檔；節點權重如何乘入路徑分數；GetCandidateWeight 的候選排序用法。
+
+詞 ID 類別對應的實體詞庫（2026-11-22 補，靜態；解決上節「未解：型別對應」）
+  CDicLexicon::fInit 18006bf58 槽位 ← CDic::InitData 18006221c（CALL 180062bee）：
+    類別0x000000 → +0x10 CDicLex（this+0x88）：主詞庫 IMTCL（拼音模式為 PINTLGD，元件 0x38）
+    類別0x800000 → +0x18 CDicSurrogateLex（this+0x90）：補充字詞庫 IMTCLS
+    類別0x300000 → +0x28 CDicLex 以 fOpen 模式 3 開啟（this+0xa8）：Virtual 詞庫 IMTCV（拼音 PINTLGVR）
+    類別0x100000、0x900000、0xa00000 → +0x20／+0x30／+0x38（this+0xa0／0xc0／0xc8）：
+        InitData 只將其歸零，反組譯中無任何寫入，故在此版本為空；fValidWordID 對這些類別回 false。
+    類別0x600000 → +0x40 CPlugInLexMgr（外掛詞庫）
+    類別0x200000 → +0x48 CDicEudp（使用者造詞）；類別0x700000 → +0x50 CDicSharedEudp；類別0xb00000 → +0x58（Slep）
+    類別0x400000／0x500000 → 長期／短期學習詞（CStncLearn，不在 CDicLexicon 內）。
+  檔案來源取決於 *this 索引（0＝繁中標準，1＝CT 變體）與 DAT_18011da50.. 的全域表；
+  索引到 IMTCCTL／IMTCCTLS／IMTCCTV 的對應尚未逐項核對。
+  推論結果（仍靜態）：CImeLexMgr::GetLatticeWeight 中實際可能出現的類別為
+    使用者造詞(0x2…)→0.1；Virtual 詞(0x3…)→長度 2、3 為 0.8、>3 為 0.9；
+    主詞庫(0x0…)、補充字(0x8…)→1.0；短期學習詞(0x5…)→0.83-raw*0.1。
+  chewing 對應：Virtual 詞庫需先全量解析（IMTCV 已有 19,117 筆詞項，見 native-lexical-verification.json），
+  使用者造詞權重 0.1 為強偏好；皆待路徑分數運算確認後再接入。

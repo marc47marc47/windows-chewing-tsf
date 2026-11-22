@@ -1,0 +1,74 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21
+    },
+    "configurePresets": [
+        {
+            "name": "build-base",
+            "displayName": "Build Environment",
+            "description": "Set build folders and other common variables",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build"
+        },
+        {
+            "name": "default",
+            "displayName": "Default (Release)",
+            "description": "Default preset for release build",
+            "inherits": [
+                "rust-release"
+            ]
+        },
+        {
+            "name": "coverage-base",
+            "displayName": "Enable Coverage",
+            "description": "Using compilers: C = /usr/bin/clang, CXX = /usr/bin/clang++",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ENABLE_GCOV": true
+            }
+        },
+        {
+            "name": "rust",
+            "displayName": "Rust (Debug)",
+            "description": "Build libchewing with only rust dependencies",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_INFO": true
+            },
+            "inherits": [
+                "build-base"
+            ]
+        },
+        {
+            "name": "rust-release",
+            "displayName": "Rust (Release)",
+            "description": "Build libchewing with only rust dependencies",
+            "inherits": [
+                "rust"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "rust-coverage",
+            "displayName": "Rust (Debug Coverage)",
+            "description": "Build libchewing with only rust dependencies",
+            "inherits": [
+                "rust",
+                "coverage-base"
+            ]
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        }
+    ]
+}

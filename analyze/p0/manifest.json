@@ -1,0 +1,364 @@
+{
+  "captured_utc": "2026-11-21T17:57:40Z",
+  "os": "Microsoft Windows [版本 10.0.26300.9818]",
+  "tools": {
+    "python": "3.13.7",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "ghidra": "12.1.4 (analyze/modules-symbolized/IMTCCORE.DLL/metadata.txt)",
+    "llvm_pdbutil": "LLVM (http://llvm.org/):"
+  },
+  "microsoft_reference": {
+    "note": "IMETC.ref is the analysed copy; installed copy compared byte-for-byte; versions never mixed.",
+    "modules": [
+      {
+        "name": "IMTCCAC.dll",
+        "reference_path": "<repo>\\IMETC.ref\\applets\\IMTCCAC.dll",
+        "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "reference_sha256": "CDAF98FB40DC305352255ABE956729BEF89F0B34C8B6073E2DE75C5862D16290",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\applets\\IMTCCAC.dll",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "installed_sha256": "CDAF98FB40DC305352255ABE956729BEF89F0B34C8B6073E2DE75C5862D16290",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "D295C54B-9BFB-F21B-E303-8A33102AAB5C",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\D295C54B9BFBF21BE3038A33102AAB5C1\\imtccac.pdb",
+          "sha256": "6C612290D7D46D2571E9140171CB0CDC5D23EBE31AAF0656DAB712A4E4F9E3F9"
+        }
+      },
+      {
+        "name": "IMTCDIC.dll",
+        "reference_path": "<repo>\\IMETC.ref\\applets\\IMTCDIC.dll",
+        "reference_version": "10.0.26100.1882 (WinBuild.160101.0800)",
+        "reference_sha256": "F1E3D54A4B2E4648614F9092CBFF83F6D7CD37C2BB53AB59DF90598CB2E0EA97",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\applets\\IMTCDIC.dll",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.1882 (WinBuild.160101.0800)",
+        "installed_sha256": "F1E3D54A4B2E4648614F9092CBFF83F6D7CD37C2BB53AB59DF90598CB2E0EA97",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "E51D1E1E-AB9C-1F45-ECB0-5E8A579E8ACF",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\E51D1E1EAB9C1F45ECB05E8A579E8ACF1\\imtcdic.pdb",
+          "sha256": "D615EC2F4D332E5FE41884D708A6ADBBBC0E6A240250CD14A353BFC620171214"
+        }
+      },
+      {
+        "name": "IMTCSKF.dll",
+        "reference_path": "<repo>\\IMETC.ref\\applets\\IMTCSKF.dll",
+        "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "reference_sha256": "3B29DAD4856409B43237AAC39CF2D5C7CE356A2C209F13B992F75FBD6AD39C61",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\applets\\IMTCSKF.dll",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "installed_sha256": "3B29DAD4856409B43237AAC39CF2D5C7CE356A2C209F13B992F75FBD6AD39C61",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "F2A4F359-B79B-FD73-FEA0-3E6CFCDCF230",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\F2A4F359B79BFD73FEA03E6CFCDCF2301\\imtcskf.pdb",
+          "sha256": "B750F32FB7CA0B082A4F58D9A297CB6317EF14D46F5BB369BC4489EDD152D641"
+        }
+      },
+      {
+        "name": "IMTCCFG.DLL",
+        "reference_path": "<repo>\\IMETC.ref\\IMTCCFG.DLL",
+        "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "reference_sha256": "FA78600162CF7431231857835D3D6E90A051DAB9A2B7EE1EB05E9E852EE045DA",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCCFG.DLL",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "installed_sha256": "FA78600162CF7431231857835D3D6E90A051DAB9A2B7EE1EB05E9E852EE045DA",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "2A53E1E4-9EBA-E831-F857-C0861670BB56",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\2A53E1E49EBAE831F857C0861670BB561\\ImTcCfg.pdb",
+          "sha256": "2D37AD8F910DA8DE235D2E11470AAD2F852C98C7FF3C1B47BC842B7DC804E679"
+        }
+      },
+      {
+        "name": "IMTCCORE.DLL",
+        "reference_path": "<repo>\\IMETC.ref\\IMTCCORE.DLL",
+        "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "reference_sha256": "E40011102FFBCE5E41DECB3D533DA5AAF78617FACA012200A65E2068E691971E",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCCORE.DLL",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "installed_sha256": "E40011102FFBCE5E41DECB3D533DA5AAF78617FACA012200A65E2068E691971E",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "587B09CF-521C-A029-1E0D-3110373DF3ED",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\587B09CF521CA0291E0D3110373DF3ED1\\ImTcCore.pdb",
+          "sha256": "3D9F2A0786E0807687BB92A562B6454CBDEE262D0E032C5B78A8FDFDF6416A8C"
+        }
+      },
+      {
+        "name": "IMTCLNWZ.EXE",
+        "reference_path": "<repo>\\IMETC.ref\\IMTCLNWZ.EXE",
+        "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "reference_sha256": "1F587B1BC468B93461692687C18D0E16B1A8F896656E8500C79641859CF8BE44",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCLNWZ.EXE",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "installed_sha256": "1F587B1BC468B93461692687C18D0E16B1A8F896656E8500C79641859CF8BE44",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "327A5B97-96B1-D765-DACE-C1FBACC56547",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\327A5B9796B1D765DACEC1FBACC565471\\IMTCLNWZ.pdb",
+          "sha256": "1AB268D503C5682D165680BCDB85F852476221294D90B41E998BF73DE6CDE43D"
+        }
+      },
+      {
+        "name": "IMTCPROP.exe",
+        "reference_path": "<repo>\\IMETC.ref\\IMTCPROP.exe",
+        "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "reference_sha256": "19EFD1EA21E32E97C7CD8ECDC1A2F361954FF84436B13774E1864195744548C8",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCPROP.exe",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "installed_sha256": "19EFD1EA21E32E97C7CD8ECDC1A2F361954FF84436B13774E1864195744548C8",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "2FA74F30-DEBF-07DF-C7C3-ACF0F0385D7E",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\2FA74F30DEBF07DFC7C3ACF0F0385D7E1\\IMTCPROP.pdb",
+          "sha256": "A52249A6918BF6FC01ACF7CA6CC10E0D951FBC44631249FFFDFE9EC2A8FA975E"
+        }
+      },
+      {
+        "name": "IMTCTIP.dll",
+        "reference_path": "<repo>\\IMETC.ref\\IMTCTIP.dll",
+        "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "reference_sha256": "7EC0C27EE34A5C222F767567D9D65922B012CFD9C631909F7AD82FD6D42678FE",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCTIP.dll",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.9818 (WinBuild.160101.0800)",
+        "installed_sha256": "7EC0C27EE34A5C222F767567D9D65922B012CFD9C631909F7AD82FD6D42678FE",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "030C7180-52B2-046A-7608-B32CF8894042",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\030C718052B2046A7608B32CF88940421\\ImTCTip.pdb",
+          "sha256": "D607813D0297FE42EF4716CA0428F76E4A4BDD8D35756755A73AF437E029B027"
+        }
+      },
+      {
+        "name": "IMTCTRLN.DLL",
+        "reference_path": "<repo>\\IMETC.ref\\IMTCTRLN.DLL",
+        "reference_version": "10.0.26100.1882 (WinBuild.160101.0800)",
+        "reference_sha256": "244F4B1DE6A68C882D82306DA54D5277FB8EB33FA5E44C8941C22B7132BC7703",
+        "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCTRLN.DLL",
+        "installed_exists": true,
+        "installed_version": "10.0.26100.1882 (WinBuild.160101.0800)",
+        "installed_sha256": "244F4B1DE6A68C882D82306DA54D5277FB8EB33FA5E44C8941C22B7132BC7703",
+        "installed_equals_reference": true,
+        "pdb": {
+          "guid": "61807FA6-0666-91FA-F464-2C1FB6D28151",
+          "pe_age": 1,
+          "pdb_age": 3,
+          "dbi_age": 1,
+          "acceptable_match": true,
+          "file": "<repo>\\analyze\\symbols\\61807FA6066691FAF4642C1FB6D281511\\IMTCTRLN.pdb",
+          "sha256": "8F756E91D8C7700B5B8EE9C24B1974116ADD57226606951FBB605260A514CD81"
+        }
+      }
+    ]
+  },
+  "microsoft_installed_dicts": {
+    "directory": "C:\\Windows\\IME\\IMETC\\DICTS",
+    "files": [
+      {
+        "name": "IMTCCJ.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCCJ.IMD",
+        "bytes": 1618106,
+        "sha256": "BBDF943BA6F04BB5CD3C4B138F5FAA61279BB6FBE6F0D002937CF763E4E7EB86",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCCJCS.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCCJCS.IMD",
+        "bytes": 912766,
+        "sha256": "6F6D9D0ACB63F060FAC5612501EC7813E58F8541DC6261F807AA1BB8C2169EEA",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCD.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCD.IMD",
+        "bytes": 1331040,
+        "sha256": "4F14B1F7BFD4DA3A7C78685E94BE31CA021C1ABEA781254D162C727809E32FD4",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCJ.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCJ.IMD",
+        "bytes": 528404,
+        "sha256": "1920E6D41382A55826F6FDC39F8D58A5302EB6B4723ED4F7190374BAC20275A4",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCL.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCL.IMD",
+        "bytes": 1322024,
+        "sha256": "22DCDC3B4576E50CC825ACC03E5C956904842F9E6FE75526F2032925E25E1AF0",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCLS.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCLS.IMD",
+        "bytes": 404904,
+        "sha256": "FDCE4DDC7ACACABDBDB129B583DF76D42885B44B7E601706997EBB59B6A2E554",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCPH.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCPH.IMD",
+        "bytes": 893472,
+        "sha256": "4A3844F206CBD7D86DAAB3C158B58710F454557859610AB9AD4597DF1028BE14",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCPHCS.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCPHCS.IMD",
+        "bytes": 377968,
+        "sha256": "095C8927F47113F5078A36754DD42C5EE8281CD55A1EE068E46DB1BA9A836031",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCT.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCT.IMD",
+        "bytes": 52199996,
+        "sha256": "8745910D292A58D162D2780B5D8FF9C94FEF6F7B36628D8DD2E361B5AB0E5223",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "IMTCV.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\IMTCV.IMD",
+        "bytes": 429472,
+        "sha256": "EA819EAC5161F1D6080AEED2A8F3F0992BA13B3D8C5A5F7DD163E46A31C0E303",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "PINTLGC.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\PINTLGC.IMD",
+        "bytes": 188278,
+        "sha256": "C2153186098EB26C52022F0E6312AD964232223E7205ACFCDC79DDB97D7657EF",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "PINTLGD.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\PINTLGD.IMD",
+        "bytes": 3692612,
+        "sha256": "FC1ABB272FC0BEA9191CDD68571E3F674FAB68A08A7E00A65A11412412A7B015",
+        "matches_parsed_snapshot": true
+      },
+      {
+        "name": "PINTLGT.IMD",
+        "path": "C:\\Windows\\IME\\IMETC\\DICTS\\PINTLGT.IMD",
+        "bytes": 16629137,
+        "sha256": "A932DF4DC1F4F7D644788D9B6470CC2937A5C056190435ECCB746E7743DFA704",
+        "matches_parsed_snapshot": true
+      }
+    ]
+  },
+  "chewing": {
+    "workspace_version": "26.11.0",
+    "libchewing_dependency_version": "0.14.0-rc.1",
+    "vcs": "workspace is not a git checkout (no .git); identity pinned by file hashes below",
+    "files": [
+      {
+        "path": "Cargo.toml",
+        "sha256": "E923502513A3A84A4FA4718B5A7532D693B86FCA600AC9C5ABEEB628B22DD640"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "42349F7145873AA11694D99C7B4D535467A4F4A4FB28805823199042C877E04B"
+      },
+      {
+        "path": "libchewing/Cargo.toml",
+        "sha256": "746525BC413EBADBE5B56AAD70BC3038F226FBD5CC591D6FC538688F094828DB"
+      },
+      {
+        "path": "libchewing/Cargo.lock",
+        "sha256": "85EBEAA30B839F09E1A9CD2D8D83687CBA6B78B0BDFF1DCCD8249B98BAFA94D0"
+      },
+      {
+        "path": "analyze/rust-dependency-cache.json",
+        "sha256": "5AE85D7A59B758F18DE6B5989979DF1214CB45F0E293BC5BA7E1DC394F260B64"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/CMakeLists.txt",
+        "bytes": 2409,
+        "sha256": "D2778F758F86E7A554A764B1F9B886244CF4FB70DD654DC0D555D8A19DF1F65C"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/rare_dict.csv",
+        "bytes": 30862,
+        "sha256": "25ECC2C82BE5E46E43A44F15D3A8B6206BC7DE85B3DCB5E0053DEE9FE66FD981"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/README.md",
+        "bytes": 1411,
+        "sha256": "E425F37A13998342B3E8C7B7C77D60C51792FD239C3830E6BC2588549B7F8810"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/static_lm.arpa",
+        "bytes": 32157589,
+        "sha256": "3FBCB40505C9C1F081A3DCBD95A1CE3EEDCE87513B3800C0BC8BB76AFB80B60A"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/static_words.txt",
+        "bytes": 1259608,
+        "sha256": "BEC1F4A811F7039614E40CA4DE11333906F1EE82A9E954CF6E0138B0AE41663B"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/tsi_dict.csv",
+        "bytes": 4986321,
+        "sha256": "236D66687AFD22E776E0ADC4E5142C33ADAFD2B88E44251D0667E5CDEFA13415"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/tsi_unigram.arpa",
+        "bytes": 4027013,
+        "sha256": "0580F128FA47A42FC211C6774A4A4D558B1A022B8DC3B3F107618368D94DC7B8"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/tuning.dat",
+        "bytes": 1384,
+        "sha256": "A2AECE157FDC604A36674FF3441400014AFBF9D22384B022204620489CB23A6E"
+      },
+      {
+        "path": "libchewing/data/dict/chewing_v4/tuning_chart.png",
+        "bytes": 78955,
+        "sha256": "B4FF17B1A8FCCF07BD133EA2D0818E23B386E168B83C6A0C9733D5FC3C5A73CE"
+      }
+    ]
+  }
+}

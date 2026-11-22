@@ -1,0 +1,164 @@
+[
+  {
+    "id": "S01",
+    "scenario": "empty buffer + Space",
+    "evidence": "CTypingControl::HandleKeyEvent 180035954 (no typing) -> pass through",
+    "microsoft": "('PASS_THROUGH', False)",
+    "chewing": "commit=' '",
+    "status": "SAME",
+    "note": "MS passes the key to the app (app inserts the space); chewing commits the space itself: same visible text"
+  },
+  {
+    "id": "S02",
+    "scenario": "partial reading ㄇㄚ + Space (first tone)",
+    "evidence": "CTypingEditor::OnSpace 18003e520 -> CPhoneticConv::OnSpace 180049fd0 -> ToTypingParser(0x20)",
+    "microsoft": "('ON_SPACE', True)",
+    "chewing": "display='嗎' entering=False",
+    "status": "SAME",
+    "note": "Space completes the syllable as first tone in both; verified with a syllable whose tone-1 reading exists in the dictionary"
+  },
+  {
+    "id": "S03",
+    "scenario": "partial reading with no dictionary word for first tone + Space",
+    "evidence": "CPhoneticConv::OnSpace 180049fd0 feeds Space to the parser",
+    "microsoft": "('ON_SPACE', True)",
+    "chewing": "behavior=Bell syllable='ㄋㄧ'",
+    "status": "MS_UNDECODED",
+    "note": "chewing rings the bell and keeps ㄋㄧ pending (no tone-1 word); Microsoft outcome depends on the parser/lexicon check (CTParserPhonetic::Parsing 1800553cc, CheckReadingString) which is not replayed"
+  },
+  {
+    "id": "S04",
+    "scenario": "composed text + Space",
+    "evidence": "CComposeControl::HandleKeyEvent 180035408 -> OnPhraseKey(0x20) 180037070 -> CComposeEditor::OnSymbolInput(0x20)",
+    "microsoft": "'PHRASE_INPUT_OR_SYMBOL_SPACE'",
+    "chewing": "default display='你好 ' sel=False; --space-select sel=True",
+    "status": "SAME",
+    "note": "Legacy Microsoft inserts a space symbol (or PhraseInput); chewing default matches. P1.6 target behaviour (Space opens candidates) = space_is_select_key, see S05"
+  },
+  {
+    "id": "S05",
+    "scenario": "P1.6: Space opens candidates only on a composed syllable",
+    "evidence": "target behaviour requested by the user; chewing option space_is_select_key (Entering::Action::QuickSelect)",
+    "microsoft": "('target', None)",
+    "chewing": "composed+Space sel=True; empty+Space commit=' '; ma+Space display='嗎'; in-candidate Space page=1",
+    "status": "DIFF_OPTION",
+    "note": "all four requirements hold with space_is_select_key=true: open candidates, normal space on empty buffer, first tone kept, in-candidate Space pages"
+  },
+  {
+    "id": "S06",
+    "scenario": "composed text + Down opens candidates",
+    "evidence": "CComposeControl::OnCaretKey 180036614 -> OpenCandidate 180037378",
+    "microsoft": "'OPEN_CANDIDATE_VIA_CARET_KEY'",
+    "chewing": "selecting=True total_pages=10",
+    "status": "SAME",
+    "note": ""
+  },
+  {
+    "id": "S07",
+    "scenario": "candidate page size",
+    "evidence": "CCandidateControl: page step 9 (180037274/180036350); key table digits 1-9",
+    "microsoft": "('page=9', None)",
+    "chewing": "candidates on first page returned=10",
+    "status": "DIFF_OPTION",
+    "note": "chewing default candidates_per_page=10 (option exists); Microsoft shows 9 per page with digits 1-9 only"
+  },
+  {
+    "id": "S08",
+    "scenario": "candidate open + Space",
+    "evidence": "CCandidateControl::OnSpace 180037274; key table Space->cmd 7 (flags 0xa)",
+    "microsoft": "('SET_INDEX', 9)",
+    "chewing": "page=1",
+    "status": "SAME",
+    "note": "next page; wrap-around semantics differ at the last page (Microsoft: jump to last item then wrap to the same row; chewing: next phrase group) - see S09"
+  },
+  {
+    "id": "S09",
+    "scenario": "candidate last page + Space wrap",
+    "evidence": "candidate_space() arithmetic, tested in test_ms_input_model.py",
+    "microsoft": "('wrap to index cur%9', None)",
+    "chewing": "page=9/10",
+    "status": "DIFF_STRUCTURAL",
+    "note": "Microsoft keeps a cursor index inside the list and wraps by index; chewing pages by group (needs an index cursor: P5.4)"
+  },
+  {
+    "id": "S10",
+    "scenario": "candidate open + PageDown on last page",
+    "evidence": "CCandidateControl::OnCaretKey 180036350: wraps to index 0",
+    "microsoft": "('INDEX', 0)",
+    "chewing": "page=2/10",
+    "status": "MS_UNDECODED",
+    "note": "Microsoft wraps to index 0 on PageDown past the end; chewing PageDown pages without index cursor (compare after P5.4)"
+  },
+  {
+    "id": "S11",
+    "scenario": "candidate open + Enter",
+    "evidence": "CCandidateControl::HandleKeyEvent: Enter -> OnFinalizeItem(current index); key table ENTER->cmd 1",
+    "microsoft": "('FINALIZE_ITEM', 0)",
+    "chewing": "behavior=Bell selecting=True",
+    "status": "DIFF_STRUCTURAL",
+    "note": "Microsoft selects the highlighted item; chewing has no highlighted item and rings the bell"
+  },
+  {
+    "id": "S12",
+    "scenario": "candidate open + digit 2",
+    "evidence": "key table unicode \"2\" -> cmd 4 arg 2; OnCharInput 180036a80",
+    "microsoft": "('FINALIZE_ITEM_BY_DIGIT', 1)",
+    "chewing": "selecting=False display='是'",
+    "status": "SAME",
+    "note": "digit selects the item at that position (note: chewing page has 10 entries, Microsoft 9)"
+  },
+  {
+    "id": "S13",
+    "scenario": "candidate open + Esc",
+    "evidence": "key table ESC->cmd 2; CCandidateControl::OnCancel 180035efc",
+    "microsoft": "('CANCEL', None)",
+    "chewing": "selecting=False display='是'",
+    "status": "SAME",
+    "note": "closes the list, text kept"
+  },
+  {
+    "id": "S14",
+    "scenario": "composed text + Enter",
+    "evidence": "CComposeControl::HandleKeyEvent Enter branch",
+    "microsoft": "'COMMIT'",
+    "chewing": "commit='你好'",
+    "status": "SAME",
+    "note": ""
+  },
+  {
+    "id": "S15",
+    "scenario": "composed text + Esc",
+    "evidence": "CComposeControl Esc branch: clear block / config 299 (0x12b)",
+    "microsoft": "'CANCEL_OR_CLEAR'",
+    "chewing": "default display='你好' behavior=Ignore",
+    "status": "MS_UNDECODED",
+    "note": "chewing ignores Esc by default (option esc_clear_all_buffer); Microsoft behaviour depends on config 0x12b whose meaning is not decoded"
+  },
+  {
+    "id": "S16",
+    "scenario": "typing state + Esc",
+    "evidence": "CTypingEditor::CancelTyping 18003dcb0",
+    "microsoft": "('CANCEL_TYPING', True)",
+    "chewing": "syllable=''",
+    "status": "SAME",
+    "note": ""
+  },
+  {
+    "id": "S17",
+    "scenario": "typing state + Tab / Delete",
+    "evidence": "typing_control: Tab consumed, Delete -> OnDelete 18003e440",
+    "microsoft": "(('CONSUME_NOTHING', True), ('ON_DELETE', True))",
+    "chewing": "tab behavior=Bell del behavior=Bell",
+    "status": "DIFF_STRUCTURAL",
+    "note": "Microsoft consumes Tab silently and Delete edits typing; chewing rings the bell for both"
+  },
+  {
+    "id": "S18",
+    "scenario": "composed text + Backspace",
+    "evidence": "CComposeControl Backspace -> CComposeEditor::OnBackSpace 18008ede0",
+    "microsoft": "'ON_BACKSPACE'",
+    "chewing": "display=''",
+    "status": "SAME",
+    "note": ""
+  }
+]

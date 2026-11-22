@@ -1,0 +1,22 @@
+[package]
+name = "chewing_capi"
+description = "The Chewing (酷音) intelligent Zhuyin input method."
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+chewing = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[features]
+sqlite = []
+sqlite-bundled = []

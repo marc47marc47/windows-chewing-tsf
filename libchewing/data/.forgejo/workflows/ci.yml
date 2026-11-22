@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "main"
+      - "release/*"
+  pull_request:
+    branches:
+      - "main"
+      - "release/*"
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  build:
+    runs-on: fedora-latest
+    name: Syntax Checks
+
+    steps:
+      - name: Setup dependencies
+        run: |
+          dnf install -y nodejs24 cmake libchewing
+
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build
+          cmake --build build

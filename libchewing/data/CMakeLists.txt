@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.27.0...3.31.6)
+project(libchewing-data VERSION 2026.11.1 LANGUAGES NONE)
+
+include(FetchContent)
+
+if(PROJECT_IS_TOP_LEVEL)
+  set(CMAKE_SYSTEM_NAME Generic)
+endif()
+
+option(USE_SYSTEM_CHEWING_CLI "Use system-installed chewing-cli instead of building from source" ON)
+
+if(USE_SYSTEM_CHEWING_CLI)
+  find_program(CHEWING_CLI
+    chewing-cli
+    PATHS "C:\\Program Files\\ChewingTextService"
+    REQUIRED
+  )
+endif()
+
+include(GNUInstallDirs)
+
+add_subdirectory(dict/chewing_v4)
+add_subdirectory(misc)
+
+if(PROJECT_IS_TOP_LEVEL)
+  set(CPACK_GENERATOR "ZIP")
+  include(CPack)
+endif()

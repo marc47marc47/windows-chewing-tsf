@@ -1,0 +1,1 @@
+readings_checked=1519 candidates=26112 with_ordinal=26021 violations=0 skipped_rows=0
