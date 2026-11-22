@@ -61,13 +61,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: Signed Installer
           path: dist
       - name: GH Release
-        uses: softprops/action-gh-release@v3.0.0
+        uses: softprops/action-gh-release@v3.0.4
         with:
           tag_name: ${{ github.ref_name }}
           name: 穩定版 ${{ github.ref_name }}

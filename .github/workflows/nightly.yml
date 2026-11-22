@@ -59,13 +59,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: Signed Installer
           path: dist
       - name: GH Release
-        uses: softprops/action-gh-release@v3.0.0
+        uses: softprops/action-gh-release@v3.0.4
         with:
           tag_name: nightly-${{ needs.nightly-build.outputs.version }}
           name: 預覽版 ${{ needs.nightly-build.outputs.version }}
