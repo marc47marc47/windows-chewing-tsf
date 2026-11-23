@@ -8,3 +8,5 @@ node_modules
 /bin/*.exe
 /tmp/
 /logs/*.log
+/tip/rc/buildinfo.h
+/test/node_modules/

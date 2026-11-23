@@ -389,3 +389,41 @@
 - 新增 `build-msi.sh`，`pack-release.sh` 已接上：產物 `dist/windows-chewing-tsf-26.11.1122-local.msi`（18 MB，未簽章）。細節與限制見 `analyze/p0/REPRODUCE.md`「可發行 MSI」。
 - 限制與風險：①ARM64 DLL、設定程式、編輯器、tip host、cli 取自官方 724（倉庫建不出來），官方 724 的 TIP 含本倉庫沒有的 `update/config.rs`，代表倉庫原始碼與 724 不完全相同，host／設定程式與我建的 TIP 可能有 IPC／設定相容性差異——這正是需要實機完整測試的點；②用 WiX 6.0.2 而非倉庫指定的 WiX 7；③MSI 未簽章，安裝時 UAC 會顯示發行者不明。
 - 測試重點：安裝後「測試任務」轉換、Ctrl+數字在多個應用程式同時記憶、設定程式能否開啟與儲存、tip host 是否正常啟動、反安裝是否乾淨。
+
+## 2026-11-22 習慣學習（城市→程式）
+- 現象：把「城市」改選成「程式」後，下次同讀音仍出「城市」。
+- 原因：選字有寫入 history_dict.bin（已確認檔內有「程式」），但重開後只剩歷史字典加分，`UNIGRAM_THRESHOLD=100000` 使一次選字僅約 10^-5 機率（城市 4.27 < 程式 4.47）；同一次執行內另有 session 加成（上限 +3.0、1 小時窗、半衰期 15 分）才會翻轉。
+- 修改：`libchewing/src/user/history_dict.rs` 的 `UNIGRAM_THRESHOLD` 改 1000（bigram 不動），更新 4 個單元測試期望值（libchewing 135+12 測試全過）。
+- 驗證（key_replay --user-dir，新程序各一次）：第 1 次 城市 4.27／程式 4.47 → 第 2 次 程式 3.56／城市 4.27 → 第 3 次 程式 3.29；其它詞未受影響。
+- 未驗證：實機（安裝版）行為；MSI 尚未用此修改重建。
+
+## 2026-11-22 UI 全面改用 egui、移除非必要微軟依賴（使用者決定）
+範圍（使用者選擇）：選字窗＋通知窗＋設定程式＋詞庫編輯器；繪製用 CPU 軟體光柵（不用 GPU）。
+原則：非必要的微軟相關依賴一律拿掉；輸入法必需的 TSF/COM、註冊表註冊、Win32 基本 API 保留。
+| 項目 | 現況 | 目標 |
+|---|---|---|
+| 圖形堆疊 | D2D/DirectWrite/D3D11/DXGI/DirectComposition + taffy | egui（無頭）+ 自寫軟體光柵 → `UpdateLayeredWindow` |
+| 設定程式/詞庫編輯器 | 官方預編譯、WebView2 | egui + winit + softbuffer（純 CPU），無 WebView2 |
+| 開網址 | WinRT Launcher/Uri | Win32 ShellExecute |
+| 使用者設定 | HKCU\Software\ChewingTextService | 設定檔（先讀檔、退回註冊表以相容官方設定程式，最終移除） |
+| 字體 | 系統字型（微軟正黑體） | 內嵌開源 Noto Sans TC 子集 |
+| `crates/chewing_ui` | 新增 | 純 Rust、零 Windows API；字體由呼叫端提供；egui 0.37 |
+進度：
+- [x] egui 0.37 已 vendor（.cache/rust-vendor 243 個套件），`chewing_ui` crate 可離線編譯
+- [x] 軟體光柵器 `crates/chewing_ui/src/raster.rs`（左上填充規則、裁切、縮放、預乘混合；5 個測試）
+- [x] 選字窗 egui 版面 `crates/chewing_ui/src/candidate.rs`＋範例 `candidate_bmp`：496×78 px，首幀 8 ms、之後 2 ms（2 倍縮放 7.8 ms）；樣式與現有版本一致（已輸出圖檢視）
+- 註：此階段只是離線渲染驗證；尚未接進輸入法視窗（見下一項）
+- [ ] 分層視窗呈現取代 DXGI/DComp；移除 taffy 與 Direct* 相依
+- [ ] 通知窗、設定程式、詞庫編輯器；毛玻璃（擷取背後畫面再模糊）沿用 `ui/frosted.rs` 概念
+
+## 2026-11-23 WoW 無法使用新酷音：根因與改版（DLL 必須放 System32／SysWOW64）
+- 現象：Windows 11 原生微軟注音在 WoW 可用（輸入法跑在行程外），新酷音（行程內 DLL）不行；`Wow.exe` 的模組清單完全沒有新酷音 DLL。
+- 對照實驗（2026-11-23）：①官方 724（DLL 簽章、放 System32）→ WoW 可用；②1130（版本資料夾＋stub，不簽章、放 Program Files）→ 不載入；
+  ③1131 sys32（同一份修改版程式碼，**不簽章**、放 System32／SysWOW64，檔名帶版號）→ WoW 可用，`Wow.exe` 載入 `system32 底下的 chewing_tip_x64_26_11_1131.dll`。
+- 結論：原因是 **DLL 放的位置**，不是簽章也不是程式碼修改。Program Files 底下的輸入法 DLL 被 WoW（推測為暴雪的反作弊檢查）擋掉，確切機制未查明。
+- 決策：正式安裝包改成 sys32 版面（installer/windows-chewing-tsf-system32.wxs，build-msi.sh 預設 LAYOUT=system32）：
+  x64 DLL 放 System32、x86 DLL 放 SysWOW64，檔名帶版號（每版新檔名，升級不覆寫被載入的舊檔，不需要重開機）；
+  詞庫與設定程式仍在 Program Files。舊的「stub＋版本資料夾」版面（LAYOUT=versioned）保留供參考，**遊戲會擋，不要用**。
+- 從舊版面升級：tsfreg -L 於升級時清除 Program Files 底下舊的版本資料夾與 chewing_tip.dll（只有存在版本資料夾時才動手；被載入的檔案略過）。
+- MSI 內設定 MSIRESTARTMANAGERCONTROL=Disable、REBOOT=ReallySuppress：安裝不會關閉或重啟其他程式。
+- 待實機驗證：1131→1132 升級不需重開機；解除安裝乾淨；WoW 內 CapsLock 切中英；Alt+Tab 後仍保持中文。

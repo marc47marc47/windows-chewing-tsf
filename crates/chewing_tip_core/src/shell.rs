@@ -1,5 +1,5 @@
 use std::io::ErrorKind;
-use std::os::windows::ffi::OsStrExt;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::os::windows::fs::MetadataExt;
 use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
@@ -48,8 +48,45 @@ pub fn user_dir() -> Result<PathBuf, ShellError> {
     })
 }
 
+/// Directory this code was loaded from (the versioned install directory, e.g.
+/// `C:\Program Files\ChewingTextService.11.1125`). Holds the dictionaries, the host and the
+/// settings programs of the same version, so a running old version never mixes with new files.
+fn module_dir() -> Option<PathBuf> {
+    use windows::Win32::System::LibraryLoader::{
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        GetModuleFileNameW, GetModuleHandleExW,
+    };
+    use windows::core::PCWSTR;
+    let mut module = Default::default();
+    unsafe {
+        GetModuleHandleExW(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            PCWSTR(module_dir as *const () as *const u16),
+            &mut module,
+        )
+        .ok()?;
+        let mut buf = [0u16; 1024];
+        let len = GetModuleFileNameW(Some(module), &mut buf) as usize;
+        if len == 0 || len >= buf.len() {
+            return None;
+        }
+        std::path::PathBuf::from(std::ffi::OsString::from_wide(&buf[..len]))
+            .parent()
+            .map(|p| p.to_path_buf())
+    }
+}
+
+/// The install directory of the running version.
+///
+/// With the Chrome-style layout the implementation DLL lives in `<root>\<version>\`, so its own
+/// folder is returned. The legacy flat layout (everything directly in `<root>`) is the fallback.
 pub fn program_dir() -> Result<PathBuf, ShellError> {
     expect_error("Failed to determine Program Files path", || {
+        if let Some(dir) = module_dir()
+            && dir.join("Dictionary").is_dir()
+        {
+            return Ok(dir);
+        }
         Ok(PathBuf::from(
             std::env::var("ProgramW6432")
                 .or_else(|_| std::env::var("ProgramFiles"))

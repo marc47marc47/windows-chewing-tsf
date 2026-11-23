@@ -39,6 +39,19 @@ fn special(tok: &str) -> Option<KeyboardEvent> {
     Some(KeyboardEvent::builder().code(code).ksym(sym).build())
 }
 
+struct StderrLog;
+impl log::Log for StderrLog {
+    fn enabled(&self, m: &log::Metadata) -> bool {
+        m.level() <= log::Level::Debug
+    }
+    fn log(&self, r: &log::Record) {
+        if self.enabled(r.metadata()) {
+            eprintln!("[{}] {}", r.level(), r.args());
+        }
+    }
+    fn flush(&self) {}
+}
+
 fn esc(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
 }
@@ -49,6 +62,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("usage: key_replay DICTIONARY_DIR [--space-select] [--cycle-n N] KEY...".into());
     }
     let dir = Path::new(&args[1]);
+    if args.iter().any(|a| a == "--trace") {
+        let _ = log::set_logger(&StderrLog).map(|()| log::set_max_level(log::LevelFilter::Debug));
+    }
     let mut space_select = false;
     let mut cycle_n = 0usize;
     let mut ms_order: Option<String> = None;
@@ -57,6 +73,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut sort_freq = false;
     let mut engine: Option<String> = None;
     let mut add_backward = false;
+    let mut trace = false;
+    let mut new_words = false;
+    let mut auto_move = false;
     let mut keys = Vec::new();
     let mut i = 2;
     while i < args.len() {
@@ -72,6 +91,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             "--sort-by-frequency" => sort_freq = true,
             "--add-backward" => add_backward = true,
+            "--trace" => trace = true,
+            "--auto-new-words" => new_words = true,
+            "--advance" => auto_move = true,
             "--engine" => {
                 i += 1;
                 engine = Some(args[i].clone());
@@ -105,6 +127,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         o.cycle_first_n_selects = cycle_n;
         o.ms_legacy_candidate_order = ms_order.is_some();
         o.sort_candidates_by_frequency = sort_freq;
+        o.auto_learn_new_words = new_words;
+        o.auto_shift_cursor = auto_move;
         if add_backward {
             o.user_phrase_add_dir = chewing::editor::UserPhraseAddDirection::Backward;
         }

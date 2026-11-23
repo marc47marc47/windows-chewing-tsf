@@ -1,0 +1,9 @@
+[package]
+name = "chewing_ui"
+version.workspace = true
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "egui based UI for the Chewing TSF IME, rendered in software (no GPU, no window system integration)"
+
+[dependencies]
+egui = { version = "0.37", default-features = false, features = ["default_fonts"] }

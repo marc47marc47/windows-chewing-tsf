@@ -1,6 +1,6 @@
 # P0 重現指引（2026-11-22）
 
-工作目錄一律為 `<repo>`。測試用 Git Bash；需要 Windows 原生 API 的腳本必須用
+工作目錄一律為 `C:\Users\marc4\rust\windows-chewing-tsf`。測試用 Git Bash；需要 Windows 原生 API 的腳本必須用
 Windows 版 Python（`/c/Python313/python.exe`），Git Bash 內建 python 會因 `os.name!='nt'` 拒絕。
 先 `export MSYS_NO_PATHCONV=1` 再使用 `reg query ... /s`。
 

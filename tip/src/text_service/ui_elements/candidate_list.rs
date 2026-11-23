@@ -21,8 +21,11 @@ use windows::Win32::{
     Foundation::{E_FAIL, E_INVALIDARG, HINSTANCE, HWND, LPARAM, LRESULT, POINT, TRUE, WPARAM},
     Graphics::{
         Direct2D::{
-            Common::D2D1_COLOR_F, D2D1CreateFactory, ID2D1DeviceContext, ID2D1Factory1,
-            D2D1_FACTORY_TYPE_SINGLE_THREADED,
+            Common::{
+                D2D1_ALPHA_MODE_IGNORE, D2D1_COLOR_F, D2D1_PIXEL_FORMAT, D2D_RECT_F, D2D_SIZE_U,
+            },
+            D2D1CreateFactory, ID2D1DeviceContext, ID2D1Factory1, D2D1_BITMAP_PROPERTIES1,
+            D2D1_FACTORY_TYPE_SINGLE_THREADED, D2D1_ROUNDED_RECT,
         },
         DirectComposition::IDCompositionTarget,
         DirectWrite::{DWriteCreateFactory, IDWriteFactory1, DWRITE_FACTORY_TYPE_SHARED},
@@ -41,8 +44,8 @@ use windows::Win32::{
         WindowsAndMessaging::{
             GetWindowLongPtrW, LoadCursorW, RegisterClassExW, CS_IME, GWLP_USERDATA, IDC_ARROW,
             SWP_NOMOVE, WINDOWPOS, WM_NCDESTROY, WM_PAINT, WM_WINDOWPOSCHANGING, WNDCLASSEXW,
-            WS_CLIPCHILDREN, WS_EX_NOREDIRECTIONBITMAP, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
-            WS_EX_TRANSPARENT, WS_POPUP,
+            WS_CLIPCHILDREN, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_NOREDIRECTIONBITMAP,
+            WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_POPUP,
         },
     },
 };
@@ -70,6 +73,8 @@ pub(crate) struct CandidateList {
     element_id: Cell<u32>,
     parent: HWND,
     inner: Rc<CandidateListInner>,
+    /// draw with egui (software) instead of Direct2D
+    soft: bool,
 }
 
 struct CandidateListInner {
@@ -94,6 +99,11 @@ pub(crate) struct Model {
     pub(crate) highlight_fg_color: D2D1_COLOR_F,
     pub(crate) highlight_bg_color: D2D1_COLOR_F,
     pub(crate) border_color: D2D1_COLOR_F,
+    /// frosted glass backdrop (opaque panel is used when false or unsupported)
+    /// frosted glass (self-rendered blur of what is behind the window); 0 = opaque panel
+    pub(crate) acrylic: u32,
+    /// percent opacity of the colour over the blurred picture
+    pub(crate) acrylic_tint: u32,
 }
 
 pub(crate) enum FilterKeyResult {
@@ -138,7 +148,8 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
                 let view = this.view.borrow();
                 let model = this.model.borrow();
                 let dpi = get_dpi_for_point(POINT { x: pos.x, y: pos.y });
-                if let Ok(Some(scene)) = view.build_scene(&model) {
+                let glass = model.acrylic != 0;
+                if let Ok(Some(scene)) = view.build_scene(&model, glass) {
                     let (x, y) = scene.frame.window_origin(pos.x, pos.y, dpi);
                     let (cx, cy) = scene.frame.window_size(dpi);
                     if cx > 0.0 && cy > 0.0 {
@@ -156,8 +167,21 @@ extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM
     }
 }
 
+/// State of the egui (software rendered) window.
+struct SoftState {
+    renderer: RefCell<chewing_ui::candidate::Renderer>,
+    /// last rendered picture and the DPI it was rendered for
+    canvas: RefCell<Option<(chewing_ui::raster::Canvas, f32)>>,
+    pos: Cell<(i32, i32)>,
+}
+
 enum View {
     Dummy,
+    /// egui drawn on the CPU, presented through a layered window (no Direct2D/Direct3D/DirectComposition)
+    Soft {
+        window: Window,
+        state: SoftState,
+    },
     Rendered {
         _factory: ID2D1Factory1,
         _dcomptarget: IDCompositionTarget,
@@ -183,6 +207,55 @@ struct Scene {
 }
 
 impl View {
+    fn soft(parent: HWND, user_data: Weak<CandidateListInner>) -> Result<View, UiError> {
+        expect_error("Failed to create new software rendered view", || {
+            let window = Window::new();
+            window.create(
+                parent,
+                w!("ChewingCandidateListWindow"),
+                WS_POPUP | WS_CLIPCHILDREN,
+                WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE,
+                user_data.into_raw().cast(),
+            );
+            Ok(View::Soft {
+                window,
+                state: SoftState {
+                    renderer: RefCell::new(chewing_ui::candidate::Renderer::new(
+                        crate::ui::fontmap::system_fonts(),
+                    )),
+                    canvas: RefCell::new(None),
+                    pos: Cell::new((0, 0)),
+                },
+            })
+        })
+    }
+
+    /// Render the model with egui and present it at the remembered position.
+    fn present_soft(&self, model: &Model, force_render: bool) {
+        let View::Soft { window, state } = self else {
+            return;
+        };
+        let (x, y) = state.pos.get();
+        let dpi = crate::ui::gfx::get_dpi_for_point(POINT { x, y });
+        let mut cached = state.canvas.borrow_mut();
+        if force_render || cached.as_ref().is_none_or(|(_, d)| (*d - dpi).abs() > 0.5) {
+            let canvas = state
+                .renderer
+                .borrow_mut()
+                .render_candidates(&soft_model(model), dpi / 96.0);
+            *cached = Some((canvas, dpi));
+        }
+        if let Some((canvas, _)) = cached.as_ref() {
+            let (px, py) = crate::ui::gfx::clamp_point_to_monitor(
+                x,
+                y,
+                canvas.width as i32,
+                canvas.height as i32,
+            );
+            crate::ui::layered::present(window.hwnd(), &canvas.pixels, canvas.width, canvas.height, px, py);
+        }
+    }
+
     fn rendered(parent: HWND, user_data: Weak<CandidateListInner>) -> Result<View, UiError> {
         expect_error("Failed to create new RenderedView", || {
             let window = Window::new();
@@ -220,11 +293,12 @@ impl View {
     fn window(&self) -> Option<&Window> {
         match self {
             View::Dummy => None,
+            View::Soft { window, .. } => Some(window),
             View::Rendered { window, .. } => Some(window),
         }
     }
 
-    fn build_scene(&self, model: &Model) -> Result<Option<Scene>> {
+    fn build_scene(&self, model: &Model, glass: bool) -> Result<Option<Scene>> {
         let View::Rendered { dwrite_factory, .. } = self else {
             return Ok(None);
         };
@@ -241,7 +315,16 @@ impl View {
         let items = model.items.len();
         let cols = (model.cand_per_row as usize).clamp(1, items);
 
-        let panel = Panel::message_box(model.bg_color, model.border_color);
+        let panel = if glass {
+            // glass: DWM draws the blurred, tinted backdrop; the panel itself is see-through with no drop shadow
+            // (the shadow bleed would show the blur outside the rounded panel)
+            // the blurred picture is drawn behind the panel (see `draw_glass`), so the panel fill stays see-through
+            let mut p = Panel::message_box(D2D1_COLOR_F { a: 0.0, ..model.bg_color }, model.border_color);
+            p.shadow = None;
+            p
+        } else {
+            Panel::message_box(model.bg_color, model.border_color)
+        };
         let bleed = panel.bleed();
 
         let mut tree = UiTree::new();
@@ -399,7 +482,11 @@ impl View {
         else {
             return Ok(());
         };
-        let Some(mut scene) = self.build_scene(model)? else {
+        let glass = model.acrylic != 0;
+        if glass {
+            crate::ui::frosted::exclude_from_capture(window.hwnd());
+        }
+        let Some(mut scene) = self.build_scene(model, glass)? else {
             return Ok(());
         };
 
@@ -421,6 +508,12 @@ impl View {
 
         unsafe {
             target.BeginDraw();
+            if glass {
+                // falls back to the plain (transparent) panel when the screen cannot be captured
+                if let Err(error) = draw_glass(target, window.hwnd(), dpi, model) {
+                    log::warn!("frosted glass unavailable: {error:#}");
+                }
+            }
             render::paint(
                 &scene.tree,
                 scene.root,
@@ -440,6 +533,78 @@ impl View {
     }
 }
 
+/// Convert the window model to the egui renderer's model.
+fn soft_model(model: &Model) -> chewing_ui::candidate::CandidateModel {
+    use chewing_ui::candidate::{CandidateModel, CandidateStyle};
+    let color = |c: D2D1_COLOR_F| {
+        egui_color(c.r, c.g, c.b, c.a)
+    };
+    CandidateModel {
+        items: model.items.clone(),
+        selkeys: model
+            .selkeys
+            .iter()
+            .map(|k| char::from_u32(*k as u32).unwrap_or('?'))
+            .collect(),
+        per_row: model.cand_per_row as usize,
+        page: model.current_page as usize,
+        total_pages: model.total_page as usize,
+        selected: model.use_cursor.then_some(model.current_sel),
+        style: CandidateStyle {
+            font_size: model.font_size,
+            fg: color(model.fg_color),
+            selkey: color(model.selkey_color),
+            highlight_fg: color(model.highlight_fg_color),
+            highlight_bg: color(model.highlight_bg_color),
+            bg: color(model.bg_color),
+            border: color(model.border_color),
+        },
+    }
+}
+
+fn egui_color(r: f32, g: f32, b: f32, a: f32) -> chewing_ui::candidate::ExportedColor32 {
+    let c = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+    chewing_ui::candidate::ExportedColor32::from_rgba_unmultiplied(c(r), c(g), c(b), c(a))
+}
+
+/// Draw the blurred, tinted picture of the screen behind the window as the panel background.
+fn draw_glass(target: &ID2D1DeviceContext, hwnd: HWND, dpi: f32, model: &Model) -> Result<()> {
+    let (mut px, w, h) = crate::ui::frosted::capture_behind(hwnd).context("unable to capture the screen")?;
+    crate::ui::frosted::box_blur(&mut px, w, h, crate::ui::frosted::BLUR_RADIUS, 3);
+    let bg = model.bg_color;
+    crate::ui::frosted::tint(&mut px, bg.r, bg.g, bg.b, model.acrylic_tint as f32 / 100.0);
+    // diagnostics: CHEWING_GLASS_DUMP=<file.bmp> writes the finished picture for inspection
+    if let Ok(path) = std::env::var("CHEWING_GLASS_DUMP") {
+        let _ = std::fs::write(path, crate::ui::frosted::encode_bmp(&px, w, h));
+    }
+    let props = D2D1_BITMAP_PROPERTIES1 {
+        pixelFormat: D2D1_PIXEL_FORMAT {
+            format: DXGI_FORMAT_B8G8R8A8_UNORM,
+            alphaMode: D2D1_ALPHA_MODE_IGNORE,
+        },
+        dpiX: dpi,
+        dpiY: dpi,
+        ..Default::default()
+    };
+    unsafe {
+        let bitmap = target.CreateBitmap(
+            D2D_SIZE_U { width: w as u32, height: h as u32 },
+            Some(px.as_ptr().cast()),
+            (w * 4) as u32,
+            &props,
+        )?;
+        let brush = target.CreateBitmapBrush(&bitmap, None, None)?;
+        let scale = 96.0 / dpi;
+        let rounded = D2D1_ROUNDED_RECT {
+            rect: D2D_RECT_F { left: 0.0, top: 0.0, right: w as f32 * scale, bottom: h as f32 * scale },
+            radiusX: 8.0,
+            radiusY: 8.0,
+        };
+        target.FillRoundedRectangle(&rounded, &brush);
+    }
+    Ok(())
+}
+
 impl CandidateList {
     pub(crate) fn window_register_class(hinst: HINSTANCE) {
         let wc = WNDCLASSEXW {
@@ -456,7 +621,11 @@ impl CandidateList {
         };
         unsafe { RegisterClassExW(&wc) };
     }
-    pub(crate) fn new(parent: HWND, thread_mgr: ITfThreadMgr) -> Result<ComObject<CandidateList>> {
+    pub(crate) fn new(
+        parent: HWND,
+        thread_mgr: ITfThreadMgr,
+        soft: bool,
+    ) -> Result<ComObject<CandidateList>> {
         let ui_manager: ITfUIElementMgr = thread_mgr.cast()?;
         let inner = Rc::new(CandidateListInner {
             model: RefCell::new(Model::default()),
@@ -467,6 +636,7 @@ impl CandidateList {
             element_id: Cell::new(0),
             parent,
             inner,
+            soft,
         }
         .into_object();
         let mut should_show = TRUE;
@@ -579,12 +749,23 @@ impl CandidateList {
     }
     pub(crate) fn set_position(&self, x: i32, y: i32) {
         let view = self.inner.view.borrow();
+        if let View::Soft { state, .. } = &*view {
+            state.pos.set((x, y));
+            view.present_soft(&self.inner.model.borrow(), false);
+            return;
+        }
         if let Some(window) = view.window() {
             window.set_position(x, y);
         }
     }
     pub(crate) fn show(&self) {
-        if let Some(window) = self.inner.view.borrow().window() {
+        let view = self.inner.view.borrow();
+        if let View::Soft { window, .. } = &*view {
+            view.present_soft(&self.inner.model.borrow(), true);
+            window.show();
+            return;
+        }
+        if let Some(window) = view.window() {
             window.refresh();
             window.show();
         }
@@ -608,7 +789,12 @@ impl ITfUIElement_Impl for CandidateList_Impl {
     fn Show(&self, show: BOOL) -> WindowsResult<()> {
         if show.as_bool() {
             let inner = Rc::downgrade(&self.inner);
-            let view = View::rendered(self.parent, inner).map_err(|_| E_FAIL)?;
+            let view = if self.soft {
+                View::soft(self.parent, inner)
+            } else {
+                View::rendered(self.parent, inner)
+            }
+            .map_err(|_| E_FAIL)?;
             self.inner.view.replace(view);
             self.show();
         } else {

@@ -225,7 +225,7 @@ static class Program {
         ITfKeystrokeMgr ksm = (ITfKeystrokeMgr)tm; Guid fg; ksm.GetForeground(out fg);
         Console.WriteLine("foreground TIP " + fg);
         foreach (char c in keys) {
-            uint vk = c == '_' ? 0x20u : (uint)(VkKeyScan(c) & 0xff); uint scan = MapVirtualKey(vk, 0);
+            uint vk = c == '_' ? 0x20u : c == '~' ? 0x09u : c == '!' ? 0x0Du : (uint)(VkKeyScan(c) & 0xff); uint scan = MapVirtualKey(vk, 0);
             IntPtr lp = (IntPtr)(1 | (scan << 16)); bool eaten;
             ksm.KeyDown((UIntPtr)vk, lp, out eaten);
             bool e2; ksm.KeyUp((UIntPtr)vk, (IntPtr)(1 | (scan << 16) | (1 << 30) | unchecked((int)0x80000000)), out e2);

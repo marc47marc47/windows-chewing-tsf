@@ -121,6 +121,63 @@ impl TsfLangMode {
     }
 }
 
+impl TsfLangMode {
+    /// Mode after the host application set the keyboard open/close state to `open`.
+    /// Reads the real value instead of flipping: a game that closes the keyboard while unfocused and
+    /// opens it again on focus must not leave the IME inverted.
+    fn with_openclose(self, open: bool) -> TsfLangMode {
+        let chinese = matches!(self, TsfLangMode::Chinese | TsfLangMode::DisabledChinese);
+        match (open, chinese) {
+            (true, true) => TsfLangMode::Chinese,
+            (true, false) => TsfLangMode::English,
+            (false, true) => TsfLangMode::DisabledChinese,
+            (false, false) => TsfLangMode::DisabledEnglish,
+        }
+    }
+
+    /// Mode implied by the CapsLock state. Disabled modes are left alone.
+    fn with_capslock(self, enable_caps_lock: bool, lock_chinese: bool, caps_on: bool) -> TsfLangMode {
+        if self.is_disabled() || !enable_caps_lock {
+            return self;
+        }
+        let (locked, unlocked) = if lock_chinese {
+            (TsfLangMode::Chinese, TsfLangMode::English)
+        } else {
+            (TsfLangMode::English, TsfLangMode::Chinese)
+        };
+        if caps_on { locked } else { unlocked }
+    }
+}
+
+#[cfg(test)]
+mod lang_mode_tests {
+    use super::TsfLangMode::*;
+
+    #[test]
+    fn openclose_sets_the_real_state_and_never_inverts() {
+        assert_eq!(Chinese.with_openclose(false), DisabledChinese);
+        assert_eq!(DisabledChinese.with_openclose(true), Chinese);
+        // the same value reported twice (focus lost then regained) must be idempotent
+        assert_eq!(DisabledEnglish.with_openclose(false), DisabledEnglish);
+        assert_eq!(English.with_openclose(true), English);
+    }
+
+    #[test]
+    fn capslock_follows_the_key_state_with_user_setting() {
+        // user setting: LockChineseOnCapsLock=1 (CapsLock on = Chinese)
+        assert_eq!(English.with_capslock(true, true, true), Chinese);
+        assert_eq!(Chinese.with_capslock(true, true, false), English);
+        // opposite setting
+        assert_eq!(Chinese.with_capslock(true, false, true), English);
+    }
+
+    #[test]
+    fn capslock_ignored_when_disabled_or_off() {
+        assert_eq!(DisabledEnglish.with_capslock(true, true, true), DisabledEnglish);
+        assert_eq!(English.with_capslock(false, true, true), English);
+    }
+}
+
 impl From<TsfLangMode> for LanguageMode {
     fn from(value: TsfLangMode) -> Self {
         match value {
@@ -271,7 +328,7 @@ impl ChewingTextService {
         cfg.grant_sandbox_access();
 
         // Initialize a temp editor, this will be replaced in init_chewing_context.
-        let editor = Editor::chewing(None, None)?;
+        let editor = Editor::chewing(dictionary_dir(), None)?;
 
         let mut cts = ChewingTextService {
             thread_mgr,
@@ -346,6 +403,11 @@ impl ChewingTextService {
     }
 
     pub(super) fn on_thread_focus(&mut self) -> Result<()> {
+        if let Some(open) = self.read_keyboard_openclose() {
+            let before = self.lang_mode.get();
+            self.lang_mode.set(before.with_openclose(open));
+            debug!(open, before:? = before, after:? = self.lang_mode.get(); "thread focus: resync open/close");
+        }
         let _ = self.cfg.reload_if_needed();
         self.apply_runtime_config()?;
         self.sync_lang_mode(true)?;
@@ -386,6 +448,21 @@ impl ChewingTextService {
         context: &ITfContext,
         ev: SystemKeyboardEvent,
     ) -> Result<bool> {
+        // CapsLock can be toggled while we receive no keys (e.g. a game that only hands keys to the IME
+        // when its chat box is open), so trust the real key state on every key.
+        {
+            let cfg = &self.cfg.chewing_tsf;
+            if cfg.enable_caps_lock {
+                let caps_on = ev.key_state[0x14] & 1 != 0;
+                let before = self.lang_mode.get();
+                let after = before.with_capslock(true, cfg.lock_chinese_on_caps_lock, caps_on);
+                if after != before {
+                    debug!(before:? = before, after:? = after, caps_on; "CapsLock state changed unseen");
+                    self.lang_mode.set(after);
+                    let _ = self.update_lang_buttons();
+                }
+            }
+        }
         // NB: self.lang_mode might have changed earlier
         self.chewing_editor
             .set_editor_options(|opt| opt.language_mode = self.lang_mode.get().into());
@@ -779,8 +856,10 @@ impl ChewingTextService {
                     TsfLangMode::Chinese => HSTRING::from("CapsLock 鎖定中文模式"),
                     _ => HSTRING::from("輸入法關閉中"), // unreachable
                 };
-                if self.cfg.chewing_tsf.show_notification {
-                    self.show_message(context, &msg, Duration::from_millis(500))?;
+                if self.cfg.chewing_tsf.show_notification
+                    && let Err(error) = self.show_message(context, &msg, Duration::from_millis(500))
+                {
+                    debug!("unable to show mode notification: {error:#}");
                 }
             } else {
                 self.toggle_lang_mode()?;
@@ -789,8 +868,10 @@ impl ChewingTextService {
                     TsfLangMode::Chinese => HSTRING::from("中文模式"),
                     _ => HSTRING::from("輸入法關閉中"), // unreachable
                 };
-                if self.cfg.chewing_tsf.show_notification {
-                    self.show_message(context, &msg, Duration::from_millis(500))?;
+                if self.cfg.chewing_tsf.show_notification
+                    && let Err(error) = self.show_message(context, &msg, Duration::from_millis(500))
+                {
+                    debug!("unable to show mode notification: {error:#}");
                 }
             }
         }
@@ -802,8 +883,10 @@ impl ChewingTextService {
                 TsfLangMode::Chinese => HSTRING::from("中文模式"),
                 _ => HSTRING::from("輸入法關閉中"), // unreachable
             };
-            if self.cfg.chewing_tsf.show_notification {
-                self.show_message(context, &msg, Duration::from_millis(500))?;
+            if self.cfg.chewing_tsf.show_notification
+                && let Err(error) = self.show_message(context, &msg, Duration::from_millis(500))
+            {
+                debug!("unable to show mode notification: {error:#}");
             }
         }
 
@@ -812,6 +895,28 @@ impl ChewingTextService {
         // key repeat might not stop. So we always return `false` and handle keyup in
         // `on_test_keyup`.
         Ok(false)
+    }
+
+    /// The keyboard open/close state of this thread, if the host has set one.
+    fn read_keyboard_openclose(&self) -> Option<bool> {
+        let compartment_mgr: ITfCompartmentMgr = self.thread_mgr.cast().ok()?;
+        unsafe {
+            let compartment = compartment_mgr
+                .GetCompartment(&GUID_COMPARTMENT_KEYBOARD_OPENCLOSE)
+                .ok()?;
+            let value = i32::try_from(&compartment.GetValue().ok()?).ok()?;
+            Some(value != 0)
+        }
+    }
+
+    /// Follow the real open/close state; fall back to flipping when it cannot be read.
+    fn apply_keyboard_openclose(&self) {
+        let before = self.lang_mode.get();
+        match self.read_keyboard_openclose() {
+            Some(open) => self.lang_mode.set(before.with_openclose(open)),
+            None => self.toggle_keyboard_openclose(),
+        }
+        debug!(before:? = before, after:? = self.lang_mode.get(); "keyboard open/close applied");
     }
 
     fn toggle_keyboard_openclose(&self) {
@@ -883,9 +988,9 @@ impl ChewingTextService {
             && !self.pending_lang_mode_change.take()
             && self.has_focus
         {
-            // Compartment change is caused by Ctrl+Space shortcut, starting
-            // a sync_lang_mode cycle.
-            self.toggle_keyboard_openclose();
+            // Compartment change is caused by Ctrl+Space shortcut or by the host application
+            // (games open/close the keyboard around their chat box), starting a sync_lang_mode cycle.
+            self.apply_keyboard_openclose();
             self.sync_lang_mode(false)?;
         }
         Ok(())
@@ -897,9 +1002,9 @@ impl ChewingTextService {
             && !self.pending_lang_mode_change.take()
             && self.has_focus
         {
-            // Compartment change is caused by Ctrl+Space shortcut, starting
-            // a sync_lang_mode cycle.
-            self.toggle_keyboard_openclose();
+            // Compartment change is caused by Ctrl+Space shortcut or by the host application,
+            // starting a sync_lang_mode cycle.
+            self.apply_keyboard_openclose();
             self.sync_lang_mode(false)?;
             if self.is_composing() && self.lang_mode.get().is_disabled() {
                 self.chewing_editor.commit()?;
@@ -1194,7 +1299,7 @@ impl ChewingTextService {
                 let view = unsafe { context.GetActiveView()? };
                 // UILess console may not have valid HWND
                 let hwnd = unsafe { view.GetWnd().unwrap_or_default() };
-                let candidate_list = CandidateList::new(hwnd, self.thread_mgr.clone())?;
+                let candidate_list = CandidateList::new(hwnd, self.thread_mgr.clone(), self.cfg.chewing_tsf.ui_backend == 1)?;
                 self.candidate_list = Some(candidate_list);
             }
 
@@ -1213,6 +1318,7 @@ impl ChewingTextService {
                     return Ok(());
                 }
                 items.truncate(n);
+                info!("candidate window: glass={}", cfg.candidate_acrylic);
                 candidate_list.set_model(Model {
                     items,
                     selkeys: sel_keys.chars().take(n).map(|k| k as u16).collect(),
@@ -1229,6 +1335,8 @@ impl ChewingTextService {
                     selkey_color: color_s(&cfg.font_number_fg_color),
                     use_cursor: cfg.cursor_cand_list,
                     current_sel: 0,
+                    acrylic: cfg.candidate_acrylic,
+                    acrylic_tint: cfg.candidate_acrylic_tint,
                 });
 
                 candidate_list.show();
@@ -1408,7 +1516,7 @@ impl ChewingTextService {
 
     fn build_editor_from_cfg(cfg: &ChewingTsfConfig) -> Result<Editor> {
         // Recreate editor to load latest user files
-        let mut editor = Editor::chewing(None, None)?;
+        let mut editor = Editor::chewing(dictionary_dir(), None)?;
         editor.set_editor_options(|opt| {
             opt.easy_symbol_input = cfg.easy_symbols_with_shift || cfg.easy_symbols_with_shift_ctrl;
             // NB: Historically the config was inverted
@@ -1645,4 +1753,13 @@ fn keymap_from_kbtype(kbtype: KeyboardLayoutCompat) -> KeymapOp {
         KeyboardLayoutCompat::Colemak => KeymapOp::Ksym(&INVERTED_COLEMAK_MAP),
         _ => KeymapOp::None,
     }
+}
+
+/// Dictionaries of the running version (`<version dir>\Dictionary`); `None` lets libchewing use its default search path.
+fn dictionary_dir() -> Option<String> {
+    chewing_tip_core::shell::program_dir()
+        .ok()
+        .map(|d| d.join("Dictionary"))
+        .filter(|d| d.is_dir())
+        .map(|d| d.to_string_lossy().into_owned())
 }

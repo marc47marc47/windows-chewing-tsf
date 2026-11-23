@@ -44,6 +44,7 @@ END
 #endif    // APSTUDIO_INVOKED
 
 #include "version.rc"
+#include "buildinfo.h"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -118,6 +119,8 @@ IDR_MENU MENU
 BEGIN
     POPUP "POPUP"
     BEGIN
+        MENUITEM BUILD_INFO_STR,                        ID_BUILD_INFO, GRAYED
+        MENUITEM SEPARATOR
         MENUITEM "有新版本可以下載(&U)",                ID_CHECK_NEW_VER
         MENUITEM "關於新酷音輸入法(&A)",                ID_ABOUT
         MENUITEM "參觀新酷音官方網站(&W)",               ID_WEBSITE

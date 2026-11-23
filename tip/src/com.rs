@@ -34,19 +34,31 @@ extern "system" fn DllMain(
         let g_hinstance = G_HINSTANCE.load(Ordering::Relaxed);
         if g_hinstance == 0 {
             G_HINSTANCE.store(hmodule as usize, Ordering::Relaxed);
-            if logging::is_debugger_present() {
-                unsafe {
-                    let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+            let debugger = logging::is_debugger_present();
+            let file_log = if logging::debug_log_enabled() { logging::FileLog::open() } else { None };
+            if debugger || file_log.is_some() {
+                if debugger {
+                    unsafe {
+                        let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+                    }
                 }
+                let verbose = cfg!(debug_assertions) || file_log.is_some();
                 logforth::starter_log::builder()
                     .dispatch(|d| {
-                        d.filter(if cfg!(debug_assertions) {
-                            LevelFilter::MoreSevereEqual(Level::Debug)
-                        } else {
-                            LevelFilter::MoreSevereEqual(Level::Info)
-                        })
-                        .append(WinDbg::default())
-                        .append(logforth::append::Stderr::default())
+                        let mut d = d
+                            .filter(if verbose {
+                                LevelFilter::MoreSevereEqual(Level::Debug)
+                            } else {
+                                LevelFilter::MoreSevereEqual(Level::Info)
+                            })
+                            .append(WinDbg::default());
+                        if debugger {
+                            d = d.append(logforth::append::Stderr::default());
+                        }
+                        if let Some(f) = file_log {
+                            d = d.append(f);
+                        }
+                        d
                     })
                     .apply();
             }

@@ -177,7 +177,18 @@ struct Args {
     /// 取消註冊
     #[arg(short = 'u')]
     unregister: bool,
+    /// 清理舊版本資料夾：只保留最新的 2 個
+    #[arg(short = 'p')]
+    prune: Option<PathBuf>,
+    /// 移除所有版本資料夾（解除安裝用）
+    #[arg(short = 'P')]
+    purge: Option<PathBuf>,
+    /// 清理舊的「版本資料夾＋啟動器」版面（升級到 System32 版面時用；沒有版本資料夾就什麼都不做）
+    #[arg(short = 'L')]
+    legacy: Option<PathBuf>,
 }
+
+mod versions;
 
 fn main() -> Result<()> {
     unsafe {
@@ -185,7 +196,17 @@ fn main() -> Result<()> {
 
         let args = Args::parse();
 
-        if let Some(icon_path) = args.icon_path {
+        if let Some(root) = args.prune {
+            for dir in versions::prune(&root, versions::KEEP) {
+                println!("已移除舊版本：{}", dir.display());
+            }
+        } else if let Some(root) = args.purge {
+            versions::prune(&root, 0);
+        } else if let Some(root) = args.legacy {
+            for path in versions::legacy_cleanup(&root) {
+                println!("已移除舊版面檔案：{}", path.display());
+            }
+        } else if let Some(icon_path) = args.icon_path {
             register(&icon_path)?;
         } else if args.enable {
             enable();

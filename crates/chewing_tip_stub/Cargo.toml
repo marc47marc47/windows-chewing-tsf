@@ -1,0 +1,11 @@
+[package]
+name = "chewing_tip_stub"
+version.workspace = true
+edition = "2024"
+license = "GPL-3.0-or-later"
+description = "Stable COM entry point that loads the newest versioned Chewing TIP (Chrome style)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]

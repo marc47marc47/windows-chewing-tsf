@@ -13,7 +13,7 @@
     "modules": [
       {
         "name": "IMTCCAC.dll",
-        "reference_path": "<repo>\\IMETC.ref\\applets\\IMTCCAC.dll",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\applets\\IMTCCAC.dll",
         "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
         "reference_sha256": "CDAF98FB40DC305352255ABE956729BEF89F0B34C8B6073E2DE75C5862D16290",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\applets\\IMTCCAC.dll",
@@ -27,13 +27,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\D295C54B9BFBF21BE3038A33102AAB5C1\\imtccac.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\D295C54B9BFBF21BE3038A33102AAB5C1\\imtccac.pdb",
           "sha256": "6C612290D7D46D2571E9140171CB0CDC5D23EBE31AAF0656DAB712A4E4F9E3F9"
         }
       },
       {
         "name": "IMTCDIC.dll",
-        "reference_path": "<repo>\\IMETC.ref\\applets\\IMTCDIC.dll",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\applets\\IMTCDIC.dll",
         "reference_version": "10.0.26100.1882 (WinBuild.160101.0800)",
         "reference_sha256": "F1E3D54A4B2E4648614F9092CBFF83F6D7CD37C2BB53AB59DF90598CB2E0EA97",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\applets\\IMTCDIC.dll",
@@ -47,13 +47,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\E51D1E1EAB9C1F45ECB05E8A579E8ACF1\\imtcdic.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\E51D1E1EAB9C1F45ECB05E8A579E8ACF1\\imtcdic.pdb",
           "sha256": "D615EC2F4D332E5FE41884D708A6ADBBBC0E6A240250CD14A353BFC620171214"
         }
       },
       {
         "name": "IMTCSKF.dll",
-        "reference_path": "<repo>\\IMETC.ref\\applets\\IMTCSKF.dll",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\applets\\IMTCSKF.dll",
         "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
         "reference_sha256": "3B29DAD4856409B43237AAC39CF2D5C7CE356A2C209F13B992F75FBD6AD39C61",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\applets\\IMTCSKF.dll",
@@ -67,13 +67,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\F2A4F359B79BFD73FEA03E6CFCDCF2301\\imtcskf.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\F2A4F359B79BFD73FEA03E6CFCDCF2301\\imtcskf.pdb",
           "sha256": "B750F32FB7CA0B082A4F58D9A297CB6317EF14D46F5BB369BC4489EDD152D641"
         }
       },
       {
         "name": "IMTCCFG.DLL",
-        "reference_path": "<repo>\\IMETC.ref\\IMTCCFG.DLL",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\IMTCCFG.DLL",
         "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
         "reference_sha256": "FA78600162CF7431231857835D3D6E90A051DAB9A2B7EE1EB05E9E852EE045DA",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCCFG.DLL",
@@ -87,13 +87,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\2A53E1E49EBAE831F857C0861670BB561\\ImTcCfg.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\2A53E1E49EBAE831F857C0861670BB561\\ImTcCfg.pdb",
           "sha256": "2D37AD8F910DA8DE235D2E11470AAD2F852C98C7FF3C1B47BC842B7DC804E679"
         }
       },
       {
         "name": "IMTCCORE.DLL",
-        "reference_path": "<repo>\\IMETC.ref\\IMTCCORE.DLL",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\IMTCCORE.DLL",
         "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
         "reference_sha256": "E40011102FFBCE5E41DECB3D533DA5AAF78617FACA012200A65E2068E691971E",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCCORE.DLL",
@@ -107,13 +107,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\587B09CF521CA0291E0D3110373DF3ED1\\ImTcCore.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\587B09CF521CA0291E0D3110373DF3ED1\\ImTcCore.pdb",
           "sha256": "3D9F2A0786E0807687BB92A562B6454CBDEE262D0E032C5B78A8FDFDF6416A8C"
         }
       },
       {
         "name": "IMTCLNWZ.EXE",
-        "reference_path": "<repo>\\IMETC.ref\\IMTCLNWZ.EXE",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\IMTCLNWZ.EXE",
         "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
         "reference_sha256": "1F587B1BC468B93461692687C18D0E16B1A8F896656E8500C79641859CF8BE44",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCLNWZ.EXE",
@@ -127,13 +127,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\327A5B9796B1D765DACEC1FBACC565471\\IMTCLNWZ.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\327A5B9796B1D765DACEC1FBACC565471\\IMTCLNWZ.pdb",
           "sha256": "1AB268D503C5682D165680BCDB85F852476221294D90B41E998BF73DE6CDE43D"
         }
       },
       {
         "name": "IMTCPROP.exe",
-        "reference_path": "<repo>\\IMETC.ref\\IMTCPROP.exe",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\IMTCPROP.exe",
         "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
         "reference_sha256": "19EFD1EA21E32E97C7CD8ECDC1A2F361954FF84436B13774E1864195744548C8",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCPROP.exe",
@@ -147,13 +147,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\2FA74F30DEBF07DFC7C3ACF0F0385D7E1\\IMTCPROP.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\2FA74F30DEBF07DFC7C3ACF0F0385D7E1\\IMTCPROP.pdb",
           "sha256": "A52249A6918BF6FC01ACF7CA6CC10E0D951FBC44631249FFFDFE9EC2A8FA975E"
         }
       },
       {
         "name": "IMTCTIP.dll",
-        "reference_path": "<repo>\\IMETC.ref\\IMTCTIP.dll",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\IMTCTIP.dll",
         "reference_version": "10.0.26100.9818 (WinBuild.160101.0800)",
         "reference_sha256": "7EC0C27EE34A5C222F767567D9D65922B012CFD9C631909F7AD82FD6D42678FE",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCTIP.dll",
@@ -167,13 +167,13 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\030C718052B2046A7608B32CF88940421\\ImTCTip.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\030C718052B2046A7608B32CF88940421\\ImTCTip.pdb",
           "sha256": "D607813D0297FE42EF4716CA0428F76E4A4BDD8D35756755A73AF437E029B027"
         }
       },
       {
         "name": "IMTCTRLN.DLL",
-        "reference_path": "<repo>\\IMETC.ref\\IMTCTRLN.DLL",
+        "reference_path": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\IMETC.ref\\IMTCTRLN.DLL",
         "reference_version": "10.0.26100.1882 (WinBuild.160101.0800)",
         "reference_sha256": "244F4B1DE6A68C882D82306DA54D5277FB8EB33FA5E44C8941C22B7132BC7703",
         "installed_path": "C:\\Windows\\System32\\IME\\IMETC\\IMTCTRLN.DLL",
@@ -187,7 +187,7 @@
           "pdb_age": 3,
           "dbi_age": 1,
           "acceptable_match": true,
-          "file": "<repo>\\analyze\\symbols\\61807FA6066691FAF4642C1FB6D281511\\IMTCTRLN.pdb",
+          "file": "C:\\Users\\marc4\\rust\\windows-chewing-tsf\\analyze\\symbols\\61807FA6066691FAF4642C1FB6D281511\\IMTCTRLN.pdb",
           "sha256": "8F756E91D8C7700B5B8EE9C24B1974116ADD57226606951FBB605260A514CD81"
         }
       }

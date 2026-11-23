@@ -64,6 +64,13 @@ pub struct ChewingTsfConfig {
     pub cursor_cand_list: bool,
     pub sort_candidates_by_frequency: bool,
     pub ms_legacy_candidate_order: bool,
+    /// Frosted-glass (acrylic) candidate window. Opt-in; registry value `CandidateAcrylic`.
+    pub candidate_acrylic: u32,
+    /// Drawing backend of the popup windows: 0 = classic (Direct2D), 1 = egui software rendering.
+    /// Registry value `UiBackend`.
+    pub ui_backend: u32,
+    /// Opacity (percent) of the colour laid over the blurred backdrop; registry value `CandidateAcrylicTint`.
+    pub candidate_acrylic_tint: u32,
     pub show_cand_with_space_key: bool,
     pub cycle_first_n_selects: i32,
     pub advance_after_selection: bool,
@@ -118,6 +125,9 @@ impl Default for ChewingTsfConfig {
             cursor_cand_list: true,
             sort_candidates_by_frequency: false,
             ms_legacy_candidate_order: false,
+            candidate_acrylic: 0,
+            ui_backend: 0,
+            candidate_acrylic_tint: 40,
             show_cand_with_space_key: false,
             cycle_first_n_selects: 0,
             advance_after_selection: true,
@@ -307,6 +317,15 @@ impl Config {
             if let Ok(value) = reg_get_bool(&key, "SortCandidatesByFrequency") {
                 cfg.sort_candidates_by_frequency = value;
             }
+            if let Ok(value) = key.get_u32("UiBackend") {
+                cfg.ui_backend = value;
+            }
+            if let Ok(value) = key.get_u32("CandidateAcrylic") {
+                cfg.candidate_acrylic = value;
+            }
+            if let Ok(value) = key.get_u32("CandidateAcrylicTint") {
+                cfg.candidate_acrylic_tint = value.min(100);
+            }
             if let Ok(value) = reg_get_bool(&key, "MsLegacyCandidateOrder") {
                 cfg.ms_legacy_candidate_order = value;
             }
@@ -465,6 +484,9 @@ impl Config {
             "SortCandidatesByFrequency",
             chewing_tsf.sort_candidates_by_frequency,
         );
+        let _ = key.set_u32("UiBackend", chewing_tsf.ui_backend);
+        let _ = key.set_u32("CandidateAcrylic", chewing_tsf.candidate_acrylic);
+        let _ = key.set_u32("CandidateAcrylicTint", chewing_tsf.candidate_acrylic_tint);
         let _ = reg_set_bool(
             &key,
             "MsLegacyCandidateOrder",
@@ -736,6 +758,16 @@ impl_context_error!(pub ConfigError);
 #[cfg(test)]
 mod test {
     use crate::config::{ChewingTsfConfig, KeybindValue};
+
+    #[test]
+    fn egui_backend_is_opt_in() {
+        assert_eq!(ChewingTsfConfig::default().ui_backend, 0);
+    }
+
+    #[test]
+    fn candidate_acrylic_is_opt_in() {
+        assert_eq!(ChewingTsfConfig::default().candidate_acrylic, 0);
+    }
 
     #[test]
     fn ms_legacy_candidate_order_is_opt_in() {
